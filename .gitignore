@@ -1,3 +1,6 @@
+# backend (repo นี้อัพแค่ frontend เท่านั้น)
+server/
+
 # dependencies
 node_modules/
 
