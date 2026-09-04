@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# env / secrets
+.env
+.env.local
+.env.*.local
+
+# build output
+dist/
+build/
+
+# โฟลเดอร์เก่า/สำรองที่ไม่ได้ใช้งานแล้ว (ไม่เก็บใน git)
+my-app-old5/
+my-app-old6/
+my-app-old7/
+my-app-old8/
+server-old5/
+server-old6/
+server-old7/
+server-old8/
+auth-complete/
+checkin-permission-complete/
+dynamic-roles-complete/
+role-management-complete/
+attendance-calendar-complete/
+attendance-calendar-complete.zip
+
+# editor/OS
+.DS_Store

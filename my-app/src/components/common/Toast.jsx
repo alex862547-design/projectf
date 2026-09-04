@@ -1,0 +1,26 @@
+import React, { useEffect } from "react";
+import { CheckCircle2, XCircle } from "lucide-react";
+
+export default function Toast({ toast, onClose }) {
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(onClose, 3000);
+    return () => clearTimeout(t);
+  }, [toast, onClose]);
+
+  if (!toast) return null;
+  const isError = toast.type === "error";
+
+  return (
+    <div className="fixed bottom-6 right-6 z-[60]">
+      <div
+        className={`flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium shadow-lg ${
+          isError ? "bg-red-600 text-white" : "bg-slate-900 text-white"
+        }`}
+      >
+        {isError ? <XCircle size={18} /> : <CheckCircle2 size={18} className="text-emerald-400" />}
+        {toast.message}
+      </div>
+    </div>
+  );
+}
