@@ -10,6 +10,9 @@ const RANK_STYLES = [
   { badge: "bg-gradient-to-br from-orange-300 to-orange-500 text-orange-950 shadow-md shadow-orange-500/30", icon: Medal },
 ];
 
+// การ์ด "อันดับคะแนนรวม" ของทั้ง 4 สี — ใช้ในหน้าหลักของนักศึกษา (UserHome), หน้าเยี่ยมชม (GuestHome),
+// และหน้าตารางแข่งขันฝั่งมือถือ นับแชมป์จากแมตช์ที่ round เป็น "รอบชิงชนะเลิศ" และจบแล้วเท่านั้น
+// (ชนะรอบอื่นไม่ได้แต้ม) เรียงสีตามจำนวนชนะมาก-น้อย กดแต่ละแถวดูได้ว่าสีนั้นแชมป์กีฬาอะไรบ้าง
 export default function Standings({ matches }) {
   const [viewTeam, setViewTeam] = useState(null); // ทีมที่กำลังเปิดดูผลชนะ
 

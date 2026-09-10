@@ -10,6 +10,9 @@ const roomNumberOf = (year) => {
   return Number.isNaN(n) ? 0 : n;
 };
 
+// แท็บ "จัดการตำแหน่ง" — โชว์เฉพาะกับนักศึกษาที่ได้รับสิทธิ์ can_checkin เท่านั้น (เจ้าหน้าที่ทีม)
+// ให้ปรับตำแหน่ง/กีฬาของเพื่อนในทีมสีเดียวกันได้เอง (แทนที่ต้องให้แอดมินทำให้) มี guard เรื่องโควตา
+// (นักกีฬาแต่ละชนิด ≤10 คน/สี, หัวหน้าสี ≤1 คน/สี) เหมือนฝั่งแอดมิน — ตรวจซ้ำที่ server ด้วยเสมอ
 export default function TeamRoles({ student, students, setStudents, roles }) {
   const [error, setError] = useState("");
   const [selectedYearGroup, setSelectedYearGroup] = useState("all");

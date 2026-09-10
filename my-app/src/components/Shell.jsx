@@ -2,6 +2,10 @@ import React, { useState } from "react";
 import { LogOut, Menu, ChevronLeft, ChevronRight, Sun, Moon, Eye } from "lucide-react";
 import ConfirmDialog from "./common/ConfirmDialog";
 
+// "โครง" ของทุกหน้าหลังล็อกอินแล้ว (นักศึกษาและแอดมิน) — ตัวนี้ไม่มีเนื้อหาของตัวเอง แต่เป็นกรอบที่ครอบ
+// เนื้อหาจริง (children ที่ส่งมาจาก App.jsx) ไว้เสมอ ประกอบด้วย: แถบเมนูซ้ายบนจอกว้าง (เดสก์ท็อป),
+// แถบบน + เมนู drawer เลื่อนออกจากซ้ายบนมือถือ, ปุ่มโปรไฟล์/ออกจากระบบ/สลับธีมมืด-สว่าง
+// รับ `tabs` (รายการเมนู) กับ `active`/`setActive` มาจาก App.jsx เพื่อบอกว่าตอนนี้อยู่แท็บไหนและสลับแท็บยังไง
 export default function Shell({ role, name, tabs, active, setActive, onLogout, theme, onToggleTheme, onPreviewUser, topOffset = 0, children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);

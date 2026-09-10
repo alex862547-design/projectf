@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from "react";
 
 const COLORS = ["#a5b4fc", "#818cf8", "#f0abfc", "#93c5fd", "#fde68a"];
 
-// เอฟเฟกต์ประกายดาวไล่ตามเส้นทางที่เมาส์ขยับ — จัดการ DOM ตรงๆ ด้วย ref แทน React state
+// เอฟเฟกต์ตกแต่งล้วนๆ ไม่เกี่ยวกับข้อมูล — ประกายดาวไล่ตามเส้นทางที่เมาส์ขยับ วางซ้อนทับทุกหน้า (App.jsx
+// render ไว้ทุก state ของแอป ตั้งแต่หน้า login ไปจนถึงหน้าแอดมิน) จัดการ DOM ตรงๆ ด้วย ref แทน React state
 // เพื่อไม่ให้ทุกการขยับเมาส์ (ยิงถี่มาก) ทำให้ทั้งแอป re-render
 export default function MouseSparkle() {
   const containerRef = useRef(null);

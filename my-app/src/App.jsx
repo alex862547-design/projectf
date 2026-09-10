@@ -22,6 +22,9 @@ import AdminEventDays from "./components/admin/AdminEventDays";
 import { api, getAuthToken, setAuthToken } from "./api";
 import { setTeams as setTeamsCache } from "./utils/helpers";
 
+// Component รากของทั้งเว็บ — ควบคุมว่าตอนนี้ควรโชว์หน้าไหน (login / เยี่ยมชม / นักศึกษา / แอดมิน)
+// และเป็นที่เดียวที่โหลดข้อมูลหลักทั้งหมดจาก API (นักศึกษา, ตารางแข่งขัน, ข่าว, เช็คชื่อ ฯลฯ) มาเก็บไว้
+// แล้วส่ง (props) ต่อลงไปให้ทุกหน้าย่อยใช้ ไม่มีหน้าไหนดึงข้อมูลเองตรงๆ (ยกเว้นบางที่ที่ต้อง real-time เร็วกว่า 4 วิ)
 export default function App() {
   // session = { role, studentId, name, username } | null
   const [session, setSession] = useState(null);

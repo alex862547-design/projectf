@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 
+// ป็อปอัปเล็กๆ ที่เด้งขึ้นตอนกด "เช็คขาด" ในหน้าเช็คชื่อกิจกรรม (UserCheckin) — บังคับให้พิมพ์เหตุผล/ข้อความ
+// ก่อนยืนยันเสมอ เพื่อไม่ให้กดเช็คขาดเปล่าๆ โดยไม่มีคำอธิบาย ข้อความที่พิมพ์จะถูกส่งไปเก็บเป็นข้อความแรก
+// ของวันนั้นให้นักศึกษาคนที่ถูกเช็คขาดเห็นและตอบกลับได้ (ผ่านระบบ AttendanceThreadModal)
 export default function AbsentNoteDialog({ open, studentName, onCancel, onConfirm }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");

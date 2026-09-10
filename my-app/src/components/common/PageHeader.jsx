@@ -1,5 +1,7 @@
 import React from "react";
 
+// หัวข้อใหญ่บนสุดของทุกหน้า (ใต้แถบเมนู) — แถบสีม่วงเล็กๆ + ไอคอน + ชื่อหน้า + คำอธิบายย่อย
+// App.jsx render อันนี้ไว้ครั้งเดียวเหนือเนื้อหาของทุกแท็บ เปลี่ยน title/icon ตามแท็บที่กำลังเลือกอยู่
 export default function PageHeader({ icon: Icon, title, subtitle }) {
   return (
     <div className="px-4 md:px-8 pt-6 md:pt-8 pb-5 border-b border-slate-200 dark:border-slate-800">

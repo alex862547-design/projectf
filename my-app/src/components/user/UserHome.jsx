@@ -21,6 +21,9 @@ function StatCard({ icon: Icon, iconClass, border, label, children }) {
   );
 }
 
+// แท็บ "หน้าหลัก" ของนักศึกษา (แท็บแรกที่เห็นหลังล็อกอิน) เรียงตามลำดับบนลงล่าง:
+// แบนเนอร์วันนี้ -> ปุ่มลัดกิจกรรม -> การ์ดข้อมูลส่วนตัว 3 ใบ (สังกัดสี/บทบาท/เช็คชื่อแล้วกี่ครั้ง) ->
+// อันดับคะแนนรวม -> ข่าวสารล่าสุด (กดแต่ละข่าวเปิดอ่านเต็มๆ ในป็อปอัป)
 export default function UserHome({ student, students, matches, checkins, news, roles }) {
   const myCheckins = checkins.filter((c) => c.studentId === student.id);
   const [viewNews, setViewNews] = useState(null);

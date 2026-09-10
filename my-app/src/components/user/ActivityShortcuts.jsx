@@ -4,6 +4,9 @@ import Badge from "../common/Badge";
 import { api } from "../../api";
 import { formatThaiDate, extractSportFromRole as extractSport, normalizeSportName as normalize, sortStudentsByYear } from "../../utils/helpers";
 
+// แถบปุ่มลัดตำแหน่ง/กิจกรรม (ฟุตบอล, กองเชียร์ ฯลฯ) อยู่ใต้แบนเนอร์วันนี้ในหน้าหลัก (UserHome/GuestHome)
+// กดปุ่มไหนจะเปิดป็อปอัปโชว์ตารางแข่งขันของกีฬานั้น (ถ้ามี) และรายชื่อนักศึกษาทั้งหมดของทีมสีเดียวกันในตำแหน่งนั้น
+// เป็นข้อมูลสาธารณะ ไม่ใช่ข้อมูลส่วนตัว จึงใช้ได้ทั้งหน้านักศึกษาและหน้าเยี่ยมชม (ไม่ล็อกอิน)
 export default function ActivityShortcuts({ students, roles }) {
   const [matches, setMatches] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่ง/กิจกรรมที่กำลังเปิดดูรายละเอียด (ค่าดิบตรงตาม role)

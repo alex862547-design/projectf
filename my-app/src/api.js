@@ -1,4 +1,7 @@
-// ตัวช่วยเรียก backend API (server/ ที่ต่อกับ PostgreSQL)
+// ตัวช่วยเรียก backend API (server/ ที่ต่อกับ PostgreSQL) — ไม่ได้เป็น "หน้า" ของเว็บโดยตรง
+// แต่ทุกหน้า/ทุก component ที่ต้องคุยกับฐานข้อมูล (ล็อกอิน, จัดการนักศึกษา, ตารางแข่งขัน, เช็คชื่อ ฯลฯ) เรียกผ่านไฟล์นี้ทั้งหมด
+// วิธีทำงาน: request() คือฟังก์ชันกลาง ใส่ token (ถ้ามี) ลง header ให้อัตโนมัติทุกครั้ง แล้วแปลง error ของ server
+// ให้เป็นข้อความภาษาไทยอ่านง่าย ส่วน object `api` ด้านล่างคือรายชื่อ endpoint ทั้งหมดที่แอปนี้ใช้ (1 ฟังก์ชัน = 1 เส้นทาง API)
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
 const TOKEN_KEY = "sportsday_token";

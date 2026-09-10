@@ -17,6 +17,8 @@ function groupBySport(mine, currentRole) {
     .sort((a, b) => b.total - a.total);
 }
 
+// แถบกราฟ "เช็คชื่อแยกตามกิจกรรม" ต่อท้ายกราฟโดนัทในหน้า "ประวัติของฉัน" (UserHistory) — แจกแจงจำนวน
+// มา/ขาดของนักศึกษาคนนี้ แยกทีละกีฬา/ตำแหน่ง ไม่ใช่ตัวเลขรวมเหมือนโดนัท
 export default function AttendanceBarChart({ mine, student }) {
   const data = useMemo(() => groupBySport(mine, student?.role), [mine, student]);
   const max = Math.max(1, ...data.map((d) => d.total));

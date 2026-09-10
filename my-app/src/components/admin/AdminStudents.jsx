@@ -20,6 +20,10 @@ const THAI_COLOR_MAP = {
   "สีน้ำตาล": "#8B5E3C",
 };
 
+// เมนูแอดมิน "จัดการนักศึกษา" — หน้าที่ใหญ่และสำคัญที่สุดของฝั่งแอดมิน รวม 4 ส่วนจัดการ (ตำแหน่ง/กีฬา,
+// ชั้นปี, สีทีม, เพิ่มนักศึกษาใหม่) ไว้เป็นกล่องพับเก็บได้ด้านบน แล้วตามด้วยรายชื่อนักศึกษาทั้งหมด
+// พร้อมช่องค้นหา + ปุ่มลัดกรองตามชั้นปี/ห้อง/ตำแหน่ง และแบ่งหน้า (pagination) หน้าละ 50 คน
+// (เพราะมีนักศึกษาเป็นร้อยคน เรนเดอร์ทีเดียวหมดจะหน่วง) แก้ตำแหน่ง/สี/ชั้นปี/สิทธิ์เช็คชื่อของแต่ละคนได้ที่นี่
 export default function AdminStudents({ students, setStudents, roles, setRoles, studentYears, setStudentYears, teams, setTeams }) {
   const [form, setForm] = useState({ id: "", name: "", team: "red", role: "", year: "" });
   const [newRole, setNewRole] = useState("");

@@ -1,5 +1,8 @@
 import React from "react";
 
+// กล่องยืนยัน "ใช่/ไม่ใช่" แบบใช้ซ้ำได้ทั่วเว็บ (ออกจากระบบ, ลบข้อมูล, มอบ/ยกเลิกสิทธิ์ ฯลฯ)
+// ไม่มี state หรือ logic เป็นของตัวเอง แค่รับ props มาโชว์/สั่งงาน — ตัวที่เรียกใช้ (เช่น AdminStudents, Shell)
+// เป็นคนเก็บ state ว่าควร open ไหม และเป็นคนกำหนดว่ากด "ยืนยัน" แล้วจะเกิดอะไรขึ้น (onConfirm)
 export default function ConfirmDialog({
   open,
   title,

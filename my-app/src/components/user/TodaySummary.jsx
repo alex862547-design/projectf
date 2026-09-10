@@ -13,6 +13,8 @@ function Stat({ value, label }) {
   );
 }
 
+// แบนเนอร์ไล่สีทีมบนสุดของหน้าหลัก (UserHome/GuestHome) — โชว์วันที่วันนี้ ตัวเลขสรุป (กำลังแข่ง/รายการวันนี้/
+// รายการทั้งหมด/เช็คชื่อวันนี้) และแถบข่าวล่าสุด กดแถบข่าวแล้วเลื่อนจอลงไปที่ส่วนข่าวสารด้านล่างให้อัตโนมัติ
 export default function TodaySummary({ matches, checkins, news }) {
   const today = todayISODate();
   const matchesToday = matches.filter((m) => m.date === today);

@@ -35,6 +35,10 @@ function matchForRole(role, matches) {
   });
 }
 
+// แท็บ "เช็คชื่อกิจกรรม" — ใช้ได้เฉพาะนักศึกษาที่ได้รับสิทธิ์ can_checkin (เจ้าหน้าที่ทีม) ให้เช็คชื่อ
+// เพื่อนในทีมสีเดียวกันได้ แสดงเป็นปุ่มลัดตำแหน่ง กดตำแหน่งไหนโชว์รายชื่อของตำแหน่งนั้น (กดซ้ำ = ซ่อน)
+// ถ้าตำแหน่งผูกกับกีฬาเฉพาะทาง (เช่น "นักกีฬาฟุตบอล") จะเช็คชื่อเข้าแมตช์วันนี้ของกีฬานั้นโดยเฉพาะ
+// ถ้าเป็นตำแหน่งทั่วไป (กองเชียร์, เจ้าหน้าที่ทีม) จะเช็คชื่อแบบรายวันทั่วไป ไม่ผูกกับแมตช์ใด
 export default function UserCheckin({ student, students, matches, checkins, setCheckins, roles }) {
   const [error, setError] = useState("");
   const [pendingCheckin, setPendingCheckin] = useState(null); // { studentId, matchId, name, sport }

@@ -3,6 +3,10 @@ import { X, Send, MessageCircle } from "lucide-react";
 import { api } from "../../api";
 import { formatThaiDate } from "../../utils/helpers";
 
+// ป็อปอัปแชทของวันหนึ่งๆ ระหว่างเจ้าหน้าที่เช็คชื่อกับนักศึกษาคนนั้น — เปิดจากไอคอนข้อความในหน้าเช็คชื่อ
+// กิจกรรม (UserCheckin) และจากปฏิทินในหน้าประวัติของฉัน (UserHistory) โหลด/ส่งข้อความผ่าน api.js
+// ใช้ `viewerName` (ชื่อคนที่ล็อกอินอยู่ตอนนี้) เทียบกับชื่อผู้ส่งแต่ละข้อความ เพื่อตัดสินว่าบับเบิลไหน
+// เป็น "ของเรา" (ขึ้นขวา มีสี) กับ "ของอีกฝ่าย" (ขึ้นซ้าย ไม่มีสี) — ไม่ใช้ role เดารูปคนพิมพ์เพราะจะผิดได้
 export default function AttendanceThreadModal({ open, studentId, date, viewerName, onClose }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);

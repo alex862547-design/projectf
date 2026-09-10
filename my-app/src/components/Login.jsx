@@ -3,6 +3,10 @@ import { LogIn, Eye, EyeOff, Globe } from "lucide-react";
 import { getTeams } from "../utils/helpers";
 import { api, setAuthToken } from "../api";
 
+// หน้าแรกสุดของเว็บที่ทุกคนเห็นก่อนเข้าระบบ (ยังไม่ล็อกอิน) — มี 2 ทางเลือก:
+// 1) กรอกรหัสผู้ใช้/รหัสผ่านแล้วกด "เข้าสู่ระบบ" -> เรียก api.login() ถ้าถูกจะได้ token กลับมา (setAuthToken เก็บไว้)
+//    แล้วเรียก onLogin(user) ให้ App.jsx เปลี่ยนไปโชว์หน้านักศึกษา/แอดมินตาม role ต่อ
+// 2) กด "เยี่ยมชมเว็บไซต์" -> ไม่ต้องล็อกอิน เรียก onGuestView() ให้ App.jsx โชว์ GuestView แทน
 export default function Login({ onLogin, onGuestView }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -78,7 +82,7 @@ export default function Login({ onLogin, onGuestView }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="เช่น 16573 หรือ admin"
+                placeholder="เช่น รหัสนักศึกษา"
                 className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </div>

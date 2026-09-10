@@ -14,6 +14,8 @@ const NEWS_COLORS = [
   { bg: "bg-fuchsia-500/15", text: "text-fuchsia-400", border: "border-fuchsia-200 dark:border-fuchsia-500/30" },
 ];
 
+// เมนูแอดมิน "ข่าวสาร" — ประกาศ/ลบข่าวที่จะไปโชว์ในหน้าหลักของนักศึกษา (UserHome) และหน้าเยี่ยมชม (GuestHome)
+// ข่าวแต่ละชิ้นเป็นการ์ดแยกของตัวเอง สีไอคอนวนตามลำดับ (NEWS_COLORS) ให้แยกแต่ละข่าวออกจากกันง่ายด้วยตา
 export default function AdminNews({ news, setNews }) {
   const [form, setForm] = useState({ title: "", body: "" });
   const [error, setError] = useState("");

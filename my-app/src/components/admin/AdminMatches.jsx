@@ -15,6 +15,9 @@ function formatThaiDate(iso) {
 
 const ROUNDS = ["รอบรองชนะเลิศ", "รอบชิงอันดับ 3", "รอบชิงชนะเลิศ"];
 
+// เมนูแอดมิน "ตารางแข่งขัน/คะแนน" — จุดเดียวที่สร้าง/แก้ไขแมตช์ทั้งหมดในระบบ (กีฬา, คู่แข่ง, วันเวลา,
+// สถานที่, รอบ, คะแนน, สถานะ) ข้อมูลจากที่นี่ไปโผล่ที่ Bracket/MatchSchedule ฝั่งนักศึกษาโดยตรง
+// ไม่ได้ auto-refresh ทุก 4 วิเหมือนหน้าอื่น (App.jsx ตั้งใจเว้นไว้) กันค่าที่แอดมินกำลังพิมพ์คะแนนอยู่ถูกทับ
 export default function AdminMatches({ matches, setMatches, teams }) {
   const [form, setForm] = useState({ sport: "", teamA: "red", teamB: "blue", date: "", time: "", venue: "", round: ROUNDS[0] });
   const [error, setError] = useState("");

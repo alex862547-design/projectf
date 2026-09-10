@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import { CheckCircle2, XCircle } from "lucide-react";
 
+// ข้อความแจ้งเตือนลอยมุมขวาล่างของจอ (สำเร็จ/ผิดพลาด) หายเองใน 3 วินาที — App.jsx เก็บ state `toast`
+// ไว้ที่เดียว แล้วส่งลงมาให้ทุกหน้าเรียก setToast({type, message}) เพื่อโชว์แจ้งเตือนได้จากที่ไหนก็ได้ในแอป
 export default function Toast({ toast, onClose }) {
   useEffect(() => {
     if (!toast) return;

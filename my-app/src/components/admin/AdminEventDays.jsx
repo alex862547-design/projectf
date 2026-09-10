@@ -31,6 +31,9 @@ function dateRange(from, to) {
   return dates;
 }
 
+// เมนูแอดมิน "วันจัดกิจกรรม" — กำหนดว่าวันไหนบ้างเป็นวันที่มีกิจกรรม (event day) ในระบบ
+// รายชื่อวันที่ตั้งไว้ตรงนี้เป็นตัวตัดสินหลักของปฏิทินในหน้า "ประวัติของฉัน" ฝั่งนักศึกษาว่าวันไหนควรนับว่า
+// "มา" หรือ "ขาด" (ถ้าไม่ใช่วันจัดกิจกรรม จะไม่ถูกนับเลย) เพิ่มได้ทีละวันหรือเลือกช่วงวันที่ต่อเนื่องพร้อมกัน
 export default function AdminEventDays({ eventDays, setEventDays }) {
   const [date, setDate] = useState("");
   const [toDate, setToDate] = useState("");

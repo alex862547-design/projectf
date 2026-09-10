@@ -5,6 +5,8 @@ import Badge from "../common/Badge";
 import Bracket from "../common/Bracket";
 import { extractSportFromRole, normalizeSportName, sortStudentsByYear } from "../../utils/helpers";
 
+// หน้า "ตารางแข่งขัน" เต็มหน้า (แท็บของนักศึกษา และหน้าเยี่ยมชม) — มีแถบปุ่มเลือกชนิดกีฬาด้านบน
+// แล้วส่งแมตช์ของกีฬานั้นไปให้ Bracket วาดสาย กดชื่อทีมในตารางเปิดดูรายชื่อนักกีฬาของทีมนั้นในกีฬานี้ได้
 export default function MatchSchedule({ matches, students }) {
   const sports = useMemo(() => [...new Set(matches.map((m) => m.sport))], [matches]);
   const [selected, setSelected] = useState(sports[0] || null);
