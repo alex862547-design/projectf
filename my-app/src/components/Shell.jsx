@@ -254,7 +254,8 @@ export default function Shell({ role, name, studentId, tabs, active, setActive, 
         open={siteQrOpen}
         title="QR แชร์เว็บไซต์"
         value={window.location.origin}
-        description="ให้คนที่ยังไม่เคยเข้าเว็บสแกนเพื่อเปิดเว็บนี้ได้ทันที เช่น ติดในโปสเตอร์ประชาสัมพันธ์"
+        description="ให้คนที่ยังไม่เคยเข้าเว็บสแกนเพื่อเปิดเว็บนี้ได้ทันที เช่น ติดในโปสเตอร์ประชาสัมพันธ์ หรือแชร์ลิงก์ต่อได้เลย"
+        shareable
         onClose={() => setSiteQrOpen(false)}
       />
 
