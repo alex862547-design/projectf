@@ -20,6 +20,24 @@ export default function AttendanceDonut({ present, absent, upcoming = 0 }) {
 
   const pct = (value) => (total > 0 ? Math.round((value / total) * 100) : 0);
 
+  // ตำแหน่งป้าย % ตรงกึ่งกลางของแต่ละส่วนบนวงแหวน — คำนวณเป็นพิกัด (x,y) ธรรมดาไม่ผ่านการหมุนของ <svg>
+  // (คำนวณ "จาก 12 นาฬิกา ไล่ตามเข็ม" ตรงๆ ในกรอบ div ที่ครอบ svg อยู่ เพราะ div นี้ไม่มี -rotate-90 ทับ
+  // ต่างจากถ้าจะวาง <text> ไว้ใน svg เอง ซึ่งจะโดนหมุนตามไปด้วยจนตัวเลขเอียง) รับ fraction จุดกึ่งกลางของส่วนนั้น (0-1)
+  const labelPos = (midFraction) => {
+    const angle = midFraction * 2 * Math.PI;
+    const cx = size / 2;
+    const cy = size / 2;
+    return { left: cx + radius * Math.sin(angle), top: cy - radius * Math.cos(angle) };
+  };
+
+  const absentFrac = total > 0 ? absent / total : 0;
+  const presentFrac = total > 0 ? present / total : 0;
+  const upcomingFrac = total > 0 ? upcoming / total : 0;
+  // เรียงตามลำดับเดียวกับที่วาดวงแหวนจริง (ขาด -> มา -> ยังไม่เริ่ม) เพื่อให้จุดกึ่งกลางของป้ายตรงกับส่วนนั้นๆ
+  const absentMid = absentFrac / 2;
+  const presentMid = absentFrac + presentFrac / 2;
+  const upcomingMid = absentFrac + presentFrac + upcomingFrac / 2;
+
   return (
     <div className="flex flex-col items-center">
       <div className="relative" style={{ width: size, height: size }}>
@@ -62,6 +80,31 @@ export default function AttendanceDonut({ present, absent, upcoming = 0 }) {
             </>
           )}
         </svg>
+
+        {absent > 0 && (
+          <span
+            className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold text-white pointer-events-none"
+            style={{ ...labelPos(absentMid), textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+          >
+            {pct(absent)}%
+          </span>
+        )}
+        {present > 0 && (
+          <span
+            className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold text-white pointer-events-none"
+            style={{ ...labelPos(presentMid), textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+          >
+            {pct(present)}%
+          </span>
+        )}
+        {upcoming > 0 && (
+          <span
+            className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold text-white pointer-events-none"
+            style={{ ...labelPos(upcomingMid), textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
+          >
+            {pct(upcoming)}%
+          </span>
+        )}
       </div>
 
       <div className="mt-4 w-full space-y-2 text-xs">
