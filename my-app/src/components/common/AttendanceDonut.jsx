@@ -1,16 +1,21 @@
-import React from "react";
+import React, { useId } from "react";
 
 // กราฟโดนัทเล็กๆ ในหน้า "ประวัติของฉัน" (UserHistory) มุมซ้ายบน แสดงสัดส่วน "มา" / "ขาด" / "ยังไม่เริ่ม"
 // ของนักศึกษาคนที่ล็อกอินอยู่ ไม่ใช้ไลบรารีเสริม วาดด้วย SVG ล้วน
 // รับค่าเป็นจำนวนวัน แล้วคำนวณสัดส่วนเอง จะอัปเดตอัตโนมัติทุกครั้งที่ props เปลี่ยน (ไม่ต้องทำอะไรเพิ่มเพื่อให้เรียลไทม์
 // เพราะ props เหล่านี้มาจาก state ที่ App.jsx ดึงข้อมูลใหม่ทุก 4 วิอยู่แล้ว)
 // % ในแต่ละแถวสี (มา/ขาด/ยังไม่เริ่ม) คิดเป็นสัดส่วนจาก "total" ตัวเดียวกับที่ใช้วาดเส้นวงแหวน
-// เพื่อให้ตัวเลข % ตรงกับสัดส่วนพื้นที่ที่เห็นบนวงแหวนจริงๆ (ไม่ใช้ตรงกลางวงกลมแล้ว ย้ายไปโชว์ตรงนี้แทน)
+// เพื่อให้ตัวเลข % ตรงกับสัดส่วนพื้นที่ที่เห็นบนวงแหวนจริงๆ (ไม่ใช้ตรงกลางวงกลมแล้ว ย้ายไปโชว์บนวงแหวนแทน)
+// ตัวเลข % บนวงแหวนโค้งไปตามขอบวงแหวนจริง (SVG <textPath>) และสีตัวเลขสลับเป็นตรงข้ามเองตามโหมดมืด/สว่าง
+// (ผ่านตัวแปร CSS --donut-label-fill / --donut-label-outline ที่ index.css) ไม่ต้องเขียนโค้ดรับ dark mode ในไฟล์นี้เอง
 export default function AttendanceDonut({ present, absent, upcoming = 0 }) {
+  const rawId = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const decided = present + absent;
   const total = decided + upcoming;
   const size = 148;
   const strokeWidth = 20;
+  const cx = size / 2;
+  const cy = size / 2;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
 
@@ -20,23 +25,37 @@ export default function AttendanceDonut({ present, absent, upcoming = 0 }) {
 
   const pct = (value) => (total > 0 ? Math.round((value / total) * 100) : 0);
 
-  // ตำแหน่งป้าย % ตรงกึ่งกลางของแต่ละส่วนบนวงแหวน — คำนวณเป็นพิกัด (x,y) ธรรมดาไม่ผ่านการหมุนของ <svg>
-  // (คำนวณ "จาก 12 นาฬิกา ไล่ตามเข็ม" ตรงๆ ในกรอบ div ที่ครอบ svg อยู่ เพราะ div นี้ไม่มี -rotate-90 ทับ
-  // ต่างจากถ้าจะวาง <text> ไว้ใน svg เอง ซึ่งจะโดนหมุนตามไปด้วยจนตัวเลขเอียง) รับ fraction จุดกึ่งกลางของส่วนนั้น (0-1)
-  const labelPos = (midFraction) => {
-    const angle = midFraction * 2 * Math.PI;
-    const cx = size / 2;
-    const cy = size / 2;
-    return { left: cx + radius * Math.sin(angle), top: cy - radius * Math.cos(angle) };
-  };
-
   const absentFrac = total > 0 ? absent / total : 0;
   const presentFrac = total > 0 ? present / total : 0;
   const upcomingFrac = total > 0 ? upcoming / total : 0;
-  // เรียงตามลำดับเดียวกับที่วาดวงแหวนจริง (ขาด -> มา -> ยังไม่เริ่ม) เพื่อให้จุดกึ่งกลางของป้ายตรงกับส่วนนั้นๆ
-  const absentMid = absentFrac / 2;
-  const presentMid = absentFrac + presentFrac / 2;
-  const upcomingMid = absentFrac + presentFrac + upcomingFrac / 2;
+
+  // จุดบนวงแหวนของ fraction หนึ่งๆ (0 = 12 นาฬิกา ไล่ตามเข็มนาฬิกา) คำนวณตรงๆในพิกัดที่มองเห็นจริง
+  // ไม่ผ่านการหมุนของ <svg> วงแหวนสี (ต่างจากถ้าวาง path ไว้ใน svg ที่หมุนอยู่ ซึ่งจะทำให้ตัวเลขเอียงตามไปด้วย)
+  const point = (fraction) => {
+    const angle = fraction * 2 * Math.PI;
+    return { x: cx + radius * Math.sin(angle), y: cy - radius * Math.cos(angle) };
+  };
+
+  // เส้นโค้ง (ไม่มีสี ใช้เป็นแนวให้ตัวเลขวิ่งตามเท่านั้น) ของแต่ละส่วน ตั้งแต่ fraction เริ่มถึงจบ
+  // ส่วนที่อยู่ครึ่งล่างของวงกลม ถ้าวิ่งตามทิศเข็มนาฬิกาปกติตัวเลขจะหัวกลับ จึงสลับทิศทาง (วาดจากจบไปเริ่ม + สลับ sweep-flag)
+  // ให้ตัวเลขในครึ่งล่างหงายขึ้นอ่านง่ายเหมือนครึ่งบน
+  const arcPath = (startFrac, endFrac) => {
+    if (!(endFrac > startFrac)) return null;
+    const start = point(startFrac);
+    const end = point(endFrac);
+    const span = endFrac - startFrac;
+    const largeArc = span > 0.5 ? 1 : 0;
+    const midFrac = ((startFrac + endFrac) / 2) % 1;
+    const bottomHalf = midFrac > 0.25 && midFrac < 0.75;
+    return bottomHalf
+      ? `M ${end.x} ${end.y} A ${radius} ${radius} 0 ${largeArc} 0 ${start.x} ${start.y}`
+      : `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+  };
+
+  // เรียงตามลำดับเดียวกับที่วาดวงแหวนจริง (ขาด -> มา -> ยังไม่เริ่ม)
+  const absentPath = absent > 0 ? arcPath(0, absentFrac) : null;
+  const presentPath = present > 0 ? arcPath(absentFrac, absentFrac + presentFrac) : null;
+  const upcomingPath = upcoming > 0 ? arcPath(absentFrac + presentFrac, 1) : null;
 
   return (
     <div className="flex flex-col items-center">
@@ -81,30 +100,56 @@ export default function AttendanceDonut({ present, absent, upcoming = 0 }) {
           )}
         </svg>
 
-        {absent > 0 && (
-          <span
-            className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold text-white pointer-events-none"
-            style={{ ...labelPos(absentMid), textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
-          >
-            {pct(absent)}%
-          </span>
-        )}
-        {present > 0 && (
-          <span
-            className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold text-white pointer-events-none"
-            style={{ ...labelPos(presentMid), textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
-          >
-            {pct(present)}%
-          </span>
-        )}
-        {upcoming > 0 && (
-          <span
-            className="absolute -translate-x-1/2 -translate-y-1/2 text-[11px] font-bold text-white pointer-events-none"
-            style={{ ...labelPos(upcomingMid), textShadow: "0 1px 2px rgba(0,0,0,0.55)" }}
-          >
-            {pct(upcoming)}%
-          </span>
-        )}
+        {/* svg แยกต่างหาก ไม่หมุนแบบวงแหวนสี ใส่แค่ path (มองไม่เห็น) ไว้ให้ตัวเลข % วิ่งโค้งตามขอบวงแหวนจริง */}
+        <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className="absolute inset-0 pointer-events-none">
+          <defs>
+            {absentPath && <path id={`${rawId}-absent`} d={absentPath} fill="none" />}
+            {presentPath && <path id={`${rawId}-present`} d={presentPath} fill="none" />}
+            {upcomingPath && <path id={`${rawId}-upcoming`} d={upcomingPath} fill="none" />}
+          </defs>
+          {absentPath && (
+            <text
+              fontSize="11"
+              fontWeight="bold"
+              fill="var(--donut-label-fill)"
+              stroke="var(--donut-label-outline)"
+              strokeWidth="3"
+              paintOrder="stroke"
+            >
+              <textPath href={`#${rawId}-absent`} xlinkHref={`#${rawId}-absent`} startOffset="50%" textAnchor="middle">
+                {pct(absent)}%
+              </textPath>
+            </text>
+          )}
+          {presentPath && (
+            <text
+              fontSize="11"
+              fontWeight="bold"
+              fill="var(--donut-label-fill)"
+              stroke="var(--donut-label-outline)"
+              strokeWidth="3"
+              paintOrder="stroke"
+            >
+              <textPath href={`#${rawId}-present`} xlinkHref={`#${rawId}-present`} startOffset="50%" textAnchor="middle">
+                {pct(present)}%
+              </textPath>
+            </text>
+          )}
+          {upcomingPath && (
+            <text
+              fontSize="11"
+              fontWeight="bold"
+              fill="var(--donut-label-fill)"
+              stroke="var(--donut-label-outline)"
+              strokeWidth="3"
+              paintOrder="stroke"
+            >
+              <textPath href={`#${rawId}-upcoming`} xlinkHref={`#${rawId}-upcoming`} startOffset="50%" textAnchor="middle">
+                {pct(upcoming)}%
+              </textPath>
+            </text>
+          )}
+        </svg>
       </div>
 
       <div className="mt-4 w-full space-y-2 text-xs">

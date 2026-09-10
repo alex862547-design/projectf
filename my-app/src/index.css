@@ -7,10 +7,15 @@ html {
   -moz-osx-font-smoothing: grayscale;
   color-scheme: light;
   --donut-track: #e2e8f0;
+  /* ตัวเลข % บนวงแหวน (AttendanceDonut) โหมดสว่าง = ตัวหนังสือสีเข้ม ขอบสีอ่อน, สลับเป็นตรงข้ามในโหมดมืดด้านล่าง */
+  --donut-label-fill: #0f172a;
+  --donut-label-outline: rgba(255, 255, 255, 0.85);
 }
 html.dark {
   color-scheme: dark;
   --donut-track: #1e293b;
+  --donut-label-fill: #ffffff;
+  --donut-label-outline: rgba(0, 0, 0, 0.55);
 }
 
 body {
