@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle } from "lucide-react";
+import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AbsentNoteDialog from "../common/AbsentNoteDialog";
@@ -43,6 +43,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const [error, setError] = useState("");
   const [pendingCheckin, setPendingCheckin] = useState(null); // { studentId, matchId, name, sport }
   const [pendingAbsent, setPendingAbsent] = useState(null); // { studentId, name, matchId }
+  const [pendingUndo, setPendingUndo] = useState(null); // { checkinId, name }
   const [threadFor, setThreadFor] = useState(null); // { studentId, date }
   const [toast, setToast] = useState(null); // { type: "success" | "error", message }
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่งที่กำลังเปิดดูรายชื่ออยู่ (ปุ่มลัด)
@@ -96,6 +97,17 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     } catch (err) {
       setError(err.message);
       setToast({ type: "error", message: "เช็คชื่อไม่สำเร็จ: " + err.message });
+    }
+  };
+
+  // ยกเลิกรายการที่เช็คผิด (เช็คชื่อ/เช็คขาดผิดคน) — ลบทิ้ง แล้วคนนั้นกลับไปสถานะ "ยังไม่เช็ค" ให้เช็คใหม่ได้ทันที
+  const doUndo = async (checkinId, name) => {
+    try {
+      await api.deleteCheckin(checkinId);
+      setCheckins(checkins.filter((c) => c.id !== checkinId));
+      setToast({ type: "success", message: `ยกเลิกรายการเช็คชื่อของ "${name}" แล้ว` });
+    } catch (err) {
+      setToast({ type: "error", message: "ยกเลิกไม่สำเร็จ: " + err.message });
     }
   };
 
@@ -224,6 +236,15 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                         <MessageCircle size={14} /> ดูข้อความ
                       </button>
                     )}
+                    {hasRecord && (
+                      <button
+                        onClick={() => setPendingUndo({ checkinId: record.id, name: t.name })}
+                        title="ยกเลิกรายการนี้ (กรณีเช็คผิด) — เช็คใหม่ได้ทันทีหลังยกเลิก"
+                        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-amber-500 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-500/10"
+                      >
+                        <RotateCcw size={14} /> ยกเลิก
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -276,6 +297,15 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                       <MessageCircle size={14} /> ดูข้อความ
                     </button>
                   )}
+                  {hasRecordToday && (
+                    <button
+                      onClick={() => setPendingUndo({ checkinId: todayRecord.id, name: t.name })}
+                      title="ยกเลิกรายการนี้ (กรณีเช็คผิด) — เช็คใหม่ได้ทันทีหลังยกเลิก"
+                      className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-amber-500 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-500/10"
+                    >
+                      <RotateCcw size={14} /> ยกเลิก
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -295,6 +325,22 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         onConfirm={() => {
           doCheckin(pendingCheckin.studentId, pendingCheckin.matchId, pendingCheckin.name);
           setPendingCheckin(null);
+        }}
+      />
+
+      <ConfirmDialog
+        open={!!pendingUndo}
+        title="ยกเลิกการเช็คชื่อ"
+        message={
+          pendingUndo &&
+          `ยกเลิกรายการเช็คชื่อ/เช็คขาดของ "${pendingUndo.name}" ใช่หรือไม่? หลังยกเลิกจะเช็คใหม่ให้ถูกต้องได้ทันที`
+        }
+        confirmLabel="ยืนยันยกเลิก"
+        danger
+        onCancel={() => setPendingUndo(null)}
+        onConfirm={() => {
+          doUndo(pendingUndo.checkinId, pendingUndo.name);
+          setPendingUndo(null);
         }}
       />
 

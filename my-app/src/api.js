@@ -65,6 +65,7 @@ export const api = {
 
   getCheckins: () => request("/checkins"),
   createCheckin: (data) => request("/checkins", { method: "POST", body: JSON.stringify(data) }),
+  deleteCheckin: (id) => request(`/checkins/${id}`, { method: "DELETE" }),
 
   getAttendanceMessages: (studentId, date) =>
     request(`/attendance-messages?studentId=${encodeURIComponent(studentId)}&date=${encodeURIComponent(date)}`),
