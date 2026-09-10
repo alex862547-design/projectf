@@ -1,14 +1,19 @@
 import React, { useState } from "react";
-import { LogOut, Menu, ChevronLeft, ChevronRight, Sun, Moon, Eye } from "lucide-react";
+import { LogOut, Menu, ChevronLeft, ChevronRight, Sun, Moon, Eye, QrCode } from "lucide-react";
 import ConfirmDialog from "./common/ConfirmDialog";
+import QRCodeModal from "./common/QRCodeModal";
+import { buildCheckinQRValue } from "../utils/helpers";
 
 // "โครง" ของทุกหน้าหลังล็อกอินแล้ว (นักศึกษาและแอดมิน) — ตัวนี้ไม่มีเนื้อหาของตัวเอง แต่เป็นกรอบที่ครอบ
 // เนื้อหาจริง (children ที่ส่งมาจาก App.jsx) ไว้เสมอ ประกอบด้วย: แถบเมนูซ้ายบนจอกว้าง (เดสก์ท็อป),
-// แถบบน + เมนู drawer เลื่อนออกจากซ้ายบนมือถือ, ปุ่มโปรไฟล์/ออกจากระบบ/สลับธีมมืด-สว่าง
+// แถบบน + เมนู drawer เลื่อนออกจากซ้ายบนมือถือ, ปุ่มโปรไฟล์/ออกจากระบบ/สลับธีมมืด-สว่าง/QR code
 // รับ `tabs` (รายการเมนู) กับ `active`/`setActive` มาจาก App.jsx เพื่อบอกว่าตอนนี้อยู่แท็บไหนและสลับแท็บยังไง
-export default function Shell({ role, name, tabs, active, setActive, onLogout, theme, onToggleTheme, onPreviewUser, topOffset = 0, children }) {
+// รับ `studentId` เฉพาะกรณีเป็นนักศึกษา (role="user") เพื่อสร้าง QR เช็คชื่อประจำตัว — แอดมินไม่มีค่านี้เลยไม่เห็นปุ่มนี้
+export default function Shell({ role, name, studentId, tabs, active, setActive, onLogout, theme, onToggleTheme, onPreviewUser, topOffset = 0, children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
+  const [siteQrOpen, setSiteQrOpen] = useState(false);
+  const [myQrOpen, setMyQrOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("sidebarCollapsed") === "1");
 
   const toggleSidebar = () =>
@@ -110,6 +115,20 @@ export default function Shell({ role, name, tabs, active, setActive, onLogout, t
           <Eye size={14} /> ดูตัวอย่างหน้านักศึกษา
         </button>
       )}
+      {studentId && (
+        <button
+          onClick={() => setMyQrOpen(true)}
+          className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+        >
+          <QrCode size={14} /> QR เช็คชื่อของฉัน
+        </button>
+      )}
+      <button
+        onClick={() => setSiteQrOpen(true)}
+        className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+      >
+        <QrCode size={14} /> QR แชร์เว็บไซต์
+      </button>
       <button
         onClick={() => setConfirmLogout(true)}
         className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
@@ -230,6 +249,24 @@ export default function Shell({ role, name, tabs, active, setActive, onLogout, t
         }}
         onCancel={() => setConfirmLogout(false)}
       />
+
+      <QRCodeModal
+        open={siteQrOpen}
+        title="QR แชร์เว็บไซต์"
+        value={window.location.origin}
+        description="ให้คนที่ยังไม่เคยเข้าเว็บสแกนเพื่อเปิดเว็บนี้ได้ทันที เช่น ติดในโปสเตอร์ประชาสัมพันธ์"
+        onClose={() => setSiteQrOpen(false)}
+      />
+
+      {studentId && (
+        <QRCodeModal
+          open={myQrOpen}
+          title="QR เช็คชื่อของฉัน"
+          value={buildCheckinQRValue(studentId)}
+          description="ยื่น QR นี้ให้เจ้าหน้าที่ทีมสแกนเพื่อเช็คชื่อเข้าร่วมกิจกรรม แทนการให้ค้นหาชื่อจากลิสต์"
+          onClose={() => setMyQrOpen(false)}
+        />
+      )}
     </div>
   );
 }

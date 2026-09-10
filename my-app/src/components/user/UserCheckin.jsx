@@ -1,12 +1,13 @@
 import React, { useState } from "react";
-import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw } from "lucide-react";
+import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AbsentNoteDialog from "../common/AbsentNoteDialog";
 import AttendanceThreadModal from "../common/AttendanceThreadModal";
+import QRScannerModal from "../common/QRScannerModal";
 import Toast from "../common/Toast";
 import { api } from "../../api";
-import { formatThaiDate, sortStudentsByYear } from "../../utils/helpers";
+import { formatThaiDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
 
 function normalize(str) {
   return (str || "")
@@ -47,6 +48,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const [threadFor, setThreadFor] = useState(null); // { studentId, date }
   const [toast, setToast] = useState(null); // { type: "success" | "error", message }
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่งที่กำลังเปิดดูรายชื่ออยู่ (ปุ่มลัด)
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   if (!student.canCheckin) {
     return (
@@ -111,6 +113,37 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     }
   };
 
+  // ประมวลผลข้อความที่ได้จากการสแกน QR — หาตัวนักศึกษาเจ้าของ QR ในสีเดียวกัน คำนวณ matchId ให้เองถ้าเป็น
+  // ตำแหน่งนักกีฬาเฉพาะทาง (ไม่ต้องให้ผู้สแกนเลือกแท็บตำแหน่งก่อนสแกน) แล้วเปิดกล่องยืนยันเดียวกับตอนกดเช็คชื่อด้วยมือ
+  const handleScan = (text) => {
+    setScannerOpen(false);
+    const scannedId = parseCheckinQRValue(text);
+    if (!scannedId) {
+      setToast({ type: "error", message: "QR นี้ไม่ใช่ QR เช็คชื่อของระบบนี้" });
+      return;
+    }
+    const target = teammates.find((t) => t.id === scannedId);
+    if (!target) {
+      setToast({ type: "error", message: "ไม่พบนักศึกษาคนนี้ในสีเดียวกับคุณ" });
+      return;
+    }
+    const sport = extractSport(target.role);
+    const match = sport ? matchForRole(target.role, matches) : null;
+    if (sport && !match) {
+      setToast({ type: "error", message: `ยังไม่มีนัดแข่งขันสำหรับตำแหน่งของ "${target.name}"` });
+      return;
+    }
+    const existing = match ? matchRecord(target.id, match.id) : todayGeneralCheckin(target.id);
+    if (existing) {
+      setToast({
+        type: "error",
+        message: `"${target.name}" ${existing.status === "absent" ? "เช็คขาดไปแล้ว" : "เช็คชื่อไปแล้ว"} วันนี้`,
+      });
+      return;
+    }
+    setPendingCheckin({ studentId: target.id, matchId: match?.id ?? null, name: target.name, sport: match?.sport });
+  };
+
   const doAbsent = async (studentId, name, message, matchId = null) => {
     try {
       const created = await api.createCheckin({ studentId, matchId: matchId ?? null, status: "absent" });
@@ -135,9 +168,17 @@ export default function UserCheckin({ student, students, matches, checkins, setC
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-5">
-      <div className="text-xs text-slate-400 flex items-center gap-1.5">
-        <Users size={13} /> คุณมีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน
-        แบ่งตามตำแหน่ง/ประเภทกีฬา (ตำแหน่งใหม่ที่แอดมินเพิ่มจะขึ้นที่นี่ให้อัตโนมัติ)
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="text-xs text-slate-400 flex items-center gap-1.5">
+          <Users size={13} /> คุณมีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน
+          แบ่งตามตำแหน่ง/ประเภทกีฬา (ตำแหน่งใหม่ที่แอดมินเพิ่มจะขึ้นที่นี่ให้อัตโนมัติ)
+        </div>
+        <button
+          onClick={() => setScannerOpen(true)}
+          className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
+        >
+          <QrCode size={14} /> สแกน QR เพื่อเช็คชื่อ
+        </button>
       </div>
       {error && <div className="text-xs text-red-400">{error}</div>}
 
@@ -361,6 +402,8 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         viewerName={student.name}
         onClose={() => setThreadFor(null)}
       />
+
+      <QRScannerModal open={scannerOpen} onScan={handleScan} onClose={() => setScannerOpen(false)} />
 
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>

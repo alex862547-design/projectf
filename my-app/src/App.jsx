@@ -230,7 +230,7 @@ export default function App() {
             <button onClick={previewOnClose} className="underline font-bold shrink-0">กลับไปหน้าแอดมิน</button>
           </div>
         )}
-        <Shell role="user" name={student.name} tabs={tabs} active={activeTab} setActive={setActiveTab} onLogout={logoutFn} theme={theme} onToggleTheme={toggleTheme} topOffset={previewOnClose ? 36 : 0}>
+        <Shell role="user" name={student.name} studentId={previewOnClose ? undefined : student.id} tabs={tabs} active={activeTab} setActive={setActiveTab} onLogout={logoutFn} theme={theme} onToggleTheme={toggleTheme} topOffset={previewOnClose ? 36 : 0}>
           <PageHeader
             icon={tabs.find((t) => t.key === activeTab)?.icon || tabs[0].icon}
             title={tabs.find((t) => t.key === activeTab)?.label || tabs[0].label}

@@ -76,3 +76,15 @@ export function sortStudentsByYear(students) {
     return ga - gb || ra - rb;
   });
 }
+
+// รูปแบบข้อความที่เก็บใน QR code เช็คชื่อประจำตัวนักศึกษา (QRCodeModal สร้าง, QRScannerModal อ่าน)
+// ใส่คำนำหน้าเฉพาะไว้ (ไม่ใช่แค่ตัวรหัสเปล่าๆ) เพื่อกันเผลอเอา QR code อื่นที่ไม่เกี่ยวมาสแกนแล้วเข้าใจผิดว่าเป็นรหัสนักศึกษา
+const CHECKIN_QR_PREFIX = "SPORTSDAY-CHECKIN:";
+export function buildCheckinQRValue(studentId) {
+  return `${CHECKIN_QR_PREFIX}${studentId}`;
+}
+export function parseCheckinQRValue(text) {
+  if (typeof text !== "string" || !text.startsWith(CHECKIN_QR_PREFIX)) return null;
+  const id = text.slice(CHECKIN_QR_PREFIX.length).trim();
+  return id || null;
+}
