@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sports_day
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      # รันไฟล์ SQL เหล่านี้อัตโนมัติ (ตามลำดับชื่อไฟล์) แค่ตอนสร้างฐานข้อมูลครั้งแรกเท่านั้น
+      - ./server/sql/docker-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  server:
+    build: ./server
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/sports_day
+      JWT_SECRET: ${JWT_SECRET:-change_this_to_a_long_random_string_1234567890}
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./my-app
+      args:
+        # เบราว์เซอร์ (ที่รันอยู่นอก docker บนเครื่องจริง) เข้าถึง server ผ่านพอร์ตที่ map ไว้บนเครื่อง (4000)
+        # จึงต้องใช้ localhost ตรงนี้ ไม่ใช่ชื่อ service "server" (ชื่อ service ใช้ได้แค่ภายในเครือข่าย docker เท่านั้น)
+        VITE_API_URL: http://localhost:4000/api
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+
+volumes:
+  db_data:
