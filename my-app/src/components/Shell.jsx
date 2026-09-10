@@ -185,10 +185,13 @@ export default function Shell({ role, name, tabs, active, setActive, onLogout, t
             className="fixed inset-0 bg-slate-900/50 animate-[fadeIn_0.15s_ease-out]"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="relative w-64 max-w-[80vw] bg-slate-950 border-r border-slate-800/80 text-slate-200 flex flex-col h-full shadow-2xl animate-[slideIn_0.2s_ease-out]">
-            <Brand />
-            <NavItems onNavigate={() => setDrawerOpen(false)} />
-            <Profile />
+          <aside className="relative w-64 max-w-[80vw] bg-slate-950 border-r border-slate-800/80 text-slate-200 flex flex-col h-full shadow-2xl animate-[slideIn_0.2s_ease-out] overflow-hidden">
+            {/* ครอบด้วย overflow-y-auto ของตัวเอง กันไม่ให้เนื้อหาล้นแล้วเลื่อนหลุดจอ/สะดุดตอนปัดเร็วๆ บนมือถือ (เดิมไม่มีกรอบเลื่อนเลย) */}
+            <div className="flex flex-col h-full overflow-y-auto overscroll-contain">
+              <Brand />
+              <NavItems onNavigate={() => setDrawerOpen(false)} />
+              <Profile />
+            </div>
 
             <button
               onClick={() => setDrawerOpen(false)}
