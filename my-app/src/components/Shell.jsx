@@ -191,7 +191,11 @@ export default function Shell({ role, name, tabs, active, setActive, onLogout, t
       {/* หน้ายาวๆ จะเลื่อนที่ระดับเอกสาร/หน้าต่างจริงๆ (ไม่ใช่เลื่อนภายใน main เอง เพราะ container นอกไม่ได้จำกัดความสูงไว้)
           จึงตัด overflow-y-auto ออกจาก main — ถ้าเปิดไว้จะไปรบกวนตำแหน่งอ้างอิงของ sticky ลูกข้างใน (แถบบนมือถือ)
           ทำให้ sticky คำนวณผิดกรอบ เลื่อนไปกับเนื้อหาแทนที่จะติดขอบบนจริงๆ (คือสาเหตุที่ปัดเร็วๆ แล้วแถบบนไม่ล็อก) */}
-      <main className="flex-1">
+      {/* min-w-0 กันไม่ให้ flex item นี้ยืดกว้างเกินจอมือถือ (ค่า default ของ flex item คือ min-width:auto
+          ซึ่งไม่ยอมหดเล็กกว่าความกว้างเนื้อหาข้างในเอง เช่นแถวปุ่มกรองที่ตั้งใจให้เลื่อนแนวนอนได้ (overflow-x-auto)
+          พอไม่ยอมหด main เลยดันกว้างเกิน 375px จนทั้งหน้าเลื่อนแนวนอนได้ทั้งหน้า ก่อนหน้านี้ผู้ใช้ซูมออกได้เลยไม่สังเกต
+          แต่พอปิดการซูมแล้วปัญหานี้เห็นชัดเป็นเลย์เอาต์เพี้ยน) */}
+      <main className="flex-1 min-w-0">
         <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800/80 text-white">
           <button
             onClick={() => setDrawerOpen(true)}
