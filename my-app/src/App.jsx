@@ -230,6 +230,8 @@ export default function App() {
             <button onClick={previewOnClose} className="underline font-bold shrink-0">กลับไปหน้าแอดมิน</button>
           </div>
         )}
+        {/* studentId ส่งให้ Shell เฉพาะตอนล็อกอินเป็นนักศึกษาจริง (ไม่ใช่โหมดดูตัวอย่างของแอดมิน) เพื่อให้ปุ่ม
+            "QR เช็คชื่อของฉัน" ในโปรไฟล์โผล่มาเฉพาะเจ้าตัวจริงเท่านั้น กันแอดมินเห็น QR เช็คชื่อของคนอื่นตอนดูตัวอย่าง */}
         <Shell role="user" name={student.name} studentId={previewOnClose ? undefined : student.id} tabs={tabs} active={activeTab} setActive={setActiveTab} onLogout={logoutFn} theme={theme} onToggleTheme={toggleTheme} topOffset={previewOnClose ? 36 : 0}>
           <PageHeader
             icon={tabs.find((t) => t.key === activeTab)?.icon || tabs[0].icon}
