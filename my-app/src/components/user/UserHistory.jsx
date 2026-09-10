@@ -52,15 +52,19 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
     const d = new Date();
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
   })();
-  const { presentCount, absentCount } = useMemo(() => {
+  const { presentCount, absentCount, upcomingCount } = useMemo(() => {
     let present = 0;
     let absent = 0;
+    let upcoming = 0;
     (eventDays || []).forEach((d) => {
-      if (d.date > today) return; // ยังไม่ถึงวัน ไม่นับ
+      if (d.date > today) {
+        upcoming += 1; // ยังไม่ถึงวัน ยังไม่ตัดสินว่ามา/ขาด
+        return;
+      }
       if (presentDates.has(d.date)) present += 1;
       else absent += 1;
     });
-    return { presentCount: present, absentCount: absent };
+    return { presentCount: present, absentCount: absent, upcomingCount: upcoming };
   }, [eventDays, presentDates, today]);
 
   const eventDateSet = useMemo(() => {
@@ -86,7 +90,7 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
           <div className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-1.5" style={{ fontFamily: "Kanit, sans-serif" }}>
             <PieChart size={16} className="text-indigo-400" /> สรุปการเข้าร่วม
           </div>
-          <AttendanceDonut present={presentCount} absent={absentCount} />
+          <AttendanceDonut present={presentCount} absent={absentCount} upcoming={upcomingCount} />
           <AttendanceBarChart mine={mine} student={student} />
         </Card>
 
@@ -140,13 +144,17 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
                 const clickable = isEventDay || hasRecord;
                 const isToday = iso === today;
 
+                const isUpcoming = isEventDay && iso > today; // วันจัดกิจกรรมที่ยังไม่ถึง ยังตัดสินมา/ขาดไม่ได้
+
                 let cls = "text-slate-600"; // ไม่ใช่วันจัดกิจกรรมและไม่มีประวัติ
                 if (absent) {
                   cls = "bg-red-500/15 text-red-400 font-semibold";
                 } else if (present) {
                   cls = "bg-emerald-500 text-white font-semibold";
+                } else if (isUpcoming) {
+                  cls = "bg-sky-500/15 text-sky-400 font-semibold"; // วันจัดกิจกรรมที่ยังไม่เริ่ม
                 } else if (isEventDay) {
-                  cls = "bg-red-500/15 text-red-400 font-semibold"; // วันจัดกิจกรรมแต่ยังไม่มีการเช็คชื่อ
+                  cls = "bg-red-500/15 text-red-400 font-semibold"; // วันจัดกิจกรรมที่ผ่านไปแล้วแต่ยังไม่มีการเช็คชื่อ
                 }
 
                 return (
@@ -156,7 +164,7 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
                     disabled={!clickable}
                     onClick={() => clickable && setOpenDate(iso)}
                     title={
-                      absent ? "เช็คขาด (กดดูข้อความ)" : present ? "มาเข้าร่วม (กดดูข้อความ)" : isEventDay ? "ไม่มา" : ""
+                      absent ? "เช็คขาด (กดดูข้อความ)" : present ? "มาเข้าร่วม (กดดูข้อความ)" : isUpcoming ? "ยังไม่เริ่มกิจกรรม" : isEventDay ? "ไม่มา" : ""
                     }
                     className={`relative h-full min-h-8 flex items-center justify-center rounded-md text-xs ${cls} ${
                       clickable ? "cursor-pointer hover:ring-2 hover:ring-indigo-400" : "cursor-default"
@@ -174,6 +182,7 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 text-[10px] text-slate-400">
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" /> มาเข้าร่วม</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-red-500/15 inline-block" /> ไม่มา / เช็คขาด</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-sky-500/15 inline-block" /> ยังไม่เริ่มกิจกรรม</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded border border-slate-300 dark:border-slate-700 inline-block" /> ไม่ใช่วันจัดกิจกรรม</span>
             </div>
           </Card>

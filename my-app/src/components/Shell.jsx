@@ -158,26 +158,6 @@ export default function Shell({ role, name, tabs, active, setActive, onLogout, t
         </button>
       </div>
 
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 inset-x-0 z-30 flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800/80 text-white">
-        <button
-          onClick={() => setDrawerOpen(true)}
-          className="p-2 -ml-2 rounded-lg hover:bg-white/10"
-          aria-label="เปิดเมนู"
-        >
-          <Menu size={20} />
-        </button>
-        <div className="text-sm font-bold" style={{ fontFamily: "Kanit, sans-serif" }}>
-          {tabs.find((t) => t.key === active)?.label || "กีฬาสี"}
-        </div>
-        <div className="flex items-center gap-1.5">
-          <ThemeToggle compact />
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">
-            {name.slice(0, 2)}
-          </div>
-        </div>
-      </div>
-
       {/* Mobile drawer */}
       {drawerOpen && (
         <div className="md:hidden fixed inset-0 z-40 flex">
@@ -204,7 +184,30 @@ export default function Shell({ role, name, tabs, active, setActive, onLogout, t
         </div>
       )}
 
-      <main className="flex-1 overflow-y-auto pt-14 md:pt-0">{children}</main>
+      {/* หน้ายาวๆ จะเลื่อนที่ระดับเอกสาร/หน้าต่างจริงๆ (ไม่ใช่เลื่อนภายใน main เอง เพราะ container นอกไม่ได้จำกัดความสูงไว้)
+          จึงตัด overflow-y-auto ออกจาก main — ถ้าเปิดไว้จะไปรบกวนตำแหน่งอ้างอิงของ sticky ลูกข้างใน (แถบบนมือถือ)
+          ทำให้ sticky คำนวณผิดกรอบ เลื่อนไปกับเนื้อหาแทนที่จะติดขอบบนจริงๆ (คือสาเหตุที่ปัดเร็วๆ แล้วแถบบนไม่ล็อก) */}
+      <main className="flex-1">
+        <div className="md:hidden sticky top-0 z-30 flex items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800/80 text-white">
+          <button
+            onClick={() => setDrawerOpen(true)}
+            className="p-2 -ml-2 rounded-lg hover:bg-white/10"
+            aria-label="เปิดเมนู"
+          >
+            <Menu size={20} />
+          </button>
+          <div className="text-sm font-bold" style={{ fontFamily: "Kanit, sans-serif" }}>
+            {tabs.find((t) => t.key === active)?.label || "กีฬาสี"}
+          </div>
+          <div className="flex items-center gap-1.5">
+            <ThemeToggle compact />
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">
+              {name.slice(0, 2)}
+            </div>
+          </div>
+        </div>
+        {children}
+      </main>
 
       <ConfirmDialog
         open={confirmLogout}
