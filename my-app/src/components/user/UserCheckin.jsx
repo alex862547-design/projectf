@@ -240,14 +240,14 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                     <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{t.name}</div>
                     <div className="text-xs text-slate-400">รหัส {t.id} · {t.year || "ไม่ระบุชั้นปี"}</div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                     <button
                       onClick={() =>
                         setPendingCheckin({ studentId: t.id, matchId: activeMatch.id, name: t.name, sport: activeMatch.sport })
                       }
                       disabled={isPresent || isAbsent}
                       title={`${formatThaiDate(activeMatch.date)} · ${activeMatch.time} · ${activeMatch.venue}`}
-                      className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isPresent
                           ? "bg-emerald-500/15 text-emerald-400 cursor-default"
                           : isAbsent
@@ -255,13 +255,13 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                           : "bg-indigo-600 text-white hover:bg-indigo-700"
                       }`}
                     >
-                      <CheckCircle2 size={14} /> {isPresent ? "เช็คชื่อแล้ว" : "เช็คชื่อ"}
+                      <CheckCircle2 size={14} className="shrink-0" /> {isPresent ? "เช็คชื่อแล้ว" : "เช็คชื่อ"}
                     </button>
                     <button
                       onClick={() => setPendingAbsent({ studentId: t.id, name: t.name, matchId: activeMatch.id })}
                       disabled={isPresent || isAbsent}
                       title={`${formatThaiDate(activeMatch.date)} · ${activeMatch.time} · ${activeMatch.venue}`}
-                      className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                      className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isAbsent
                           ? "bg-red-500/15 text-red-400 cursor-default"
                           : isPresent
@@ -269,24 +269,24 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                           : "bg-white dark:bg-slate-900 text-red-400 border border-red-900/50 hover:bg-red-500/10"
                       }`}
                     >
-                      <XCircle size={14} /> {isAbsent ? "เช็คขาดแล้ว" : "เช็คขาด"}
+                      <XCircle size={14} className="shrink-0" /> {isAbsent ? "เช็คขาดแล้ว" : "เช็คขาด"}
                     </button>
                     {hasRecord && (
                       <button
                         onClick={() => setThreadFor({ studentId: t.id, date: todayStr })}
                         title="ดูข้อความของวันนี้"
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                       >
-                        <MessageCircle size={14} /> ดูข้อความ
+                        <MessageCircle size={14} className="shrink-0" /> ดูข้อความ
                       </button>
                     )}
                     {hasRecord && (
                       <button
                         onClick={() => setPendingUndo({ checkinId: record.id, name: t.name })}
                         title="ยกเลิกรายการนี้ (กรณีเช็คผิด) — เช็คใหม่ได้ทันทีหลังยกเลิก"
-                        className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-amber-500 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-500/10"
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-amber-500 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-500/10"
                       >
-                        <RotateCcw size={14} /> ยกเลิก
+                        <RotateCcw size={14} className="shrink-0" /> ยกเลิก
                       </button>
                     )}
                   </div>
@@ -305,11 +305,11 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                   <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{t.name}</div>
                   <div className="text-xs text-slate-400">รหัส {t.id} · {t.year || "ไม่ระบุชั้นปี"}</div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                   <button
                     onClick={() => setPendingCheckin({ studentId: t.id, matchId: null, name: t.name })}
                     disabled={isPresent || isAbsent}
-                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                       isPresent
                         ? "bg-emerald-500/15 text-emerald-400 cursor-default"
                         : isAbsent
@@ -317,12 +317,12 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                         : "bg-indigo-600 text-white hover:bg-indigo-700"
                     }`}
                   >
-                    <CheckCircle2 size={14} /> {isPresent ? "เช็คชื่อแล้ว" : "เช็คชื่อ"}
+                    <CheckCircle2 size={14} className="shrink-0" /> {isPresent ? "เช็คชื่อแล้ว" : "เช็คชื่อ"}
                   </button>
                   <button
                     onClick={() => setPendingAbsent({ studentId: t.id, name: t.name, matchId: null })}
                     disabled={isPresent || isAbsent}
-                    className={`flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
+                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                       isAbsent
                         ? "bg-red-500/15 text-red-400 cursor-default"
                         : isPresent
@@ -330,24 +330,24 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                         : "bg-white dark:bg-slate-900 text-red-400 border border-red-900/50 hover:bg-red-500/10"
                     }`}
                   >
-                    <XCircle size={14} /> {isAbsent ? "เช็คขาดแล้ว" : "เช็คขาด"}
+                    <XCircle size={14} className="shrink-0" /> {isAbsent ? "เช็คขาดแล้ว" : "เช็คขาด"}
                   </button>
                   {hasRecordToday && (
                     <button
                       onClick={() => setThreadFor({ studentId: t.id, date: todayStr })}
                       title="ดูข้อความของวันนี้"
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                      className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                     >
-                      <MessageCircle size={14} /> ดูข้อความ
+                      <MessageCircle size={14} className="shrink-0" /> ดูข้อความ
                     </button>
                   )}
                   {hasRecordToday && (
                     <button
                       onClick={() => setPendingUndo({ checkinId: todayRecord.id, name: t.name })}
                       title="ยกเลิกรายการนี้ (กรณีเช็คผิด) — เช็คใหม่ได้ทันทีหลังยกเลิก"
-                      className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-amber-500 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-500/10"
+                      className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-amber-500 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-500/10"
                     >
-                      <RotateCcw size={14} /> ยกเลิก
+                      <RotateCcw size={14} className="shrink-0" /> ยกเลิก
                     </button>
                   )}
                 </div>
