@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search } from "lucide-react";
+import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search, CalendarDays } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AbsentNoteDialog from "../common/AbsentNoteDialog";
@@ -7,7 +7,7 @@ import AttendanceThreadModal from "../common/AttendanceThreadModal";
 import QRScannerModal from "../common/QRScannerModal";
 import Toast from "../common/Toast";
 import { api } from "../../api";
-import { formatThaiDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
+import { formatThaiDate, formatThaiFullDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
 
 function normalize(str) {
   return (str || "")
@@ -189,6 +189,10 @@ export default function UserCheckin({ student, students, matches, checkins, setC
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-5">
+      {/* โชว์วันที่ "วันนี้" ไว้ให้เห็นชัดๆ เพราะการเช็คชื่อทุกอย่างในหน้านี้ผูกกับวันนี้เท่านั้น (ปุ่มรีเซ็ตทุกวันใหม่) */}
+      <div className="text-xs font-semibold text-indigo-400 flex items-center gap-1.5">
+        <CalendarDays size={13} /> {formatThaiFullDate()}
+      </div>
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-xs text-slate-400 flex items-center gap-1.5">
           <Users size={13} /> คุณมีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน
