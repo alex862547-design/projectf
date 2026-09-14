@@ -4,13 +4,19 @@
 // ให้เป็นข้อความภาษาไทยอ่านง่าย ส่วน object `api` ด้านล่างคือรายชื่อ endpoint ทั้งหมดที่แอปนี้ใช้ (1 ฟังก์ชัน = 1 เส้นทาง API)
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000/api";
 
+// เก็บ token ไว้ใน sessionStorage (ไม่ใช่ localStorage) เพราะ localStorage ใช้ร่วมกันทุกแท็บ/หน้าต่างของ
+// เบราว์เซอร์เดียวกันเสมอ — ถ้าเปิด 2 แท็บแล้วล็อกอินคนละบัญชี ตัวที่ล็อกอินทีหลังจะไปเขียนทับ token ของแท็บแรก
+// พอกดรีเฟรชแท็บแรกก็จะดึง token ใหม่ (บัญชีที่สอง) มาใช้ กลายเป็นบัญชีเดียวกันทั้ง 2 แท็บ ซึ่งไม่ถูกต้อง
+// sessionStorage แยกเป็นของตัวเองต่อแท็บ/หน้าต่าง (แม้เป็นเว็บเดียวกัน) แต่ละแท็บจึงคงบัญชีของตัวเองได้แม้กดรีเฟรช
 const TOKEN_KEY = "sportsday_token";
-let authToken = localStorage.getItem(TOKEN_KEY) || null;
+let authToken = sessionStorage.getItem(TOKEN_KEY) || null;
+// ล้าง token เก่าที่อาจค้างอยู่ใน localStorage จากก่อนเปลี่ยนมาใช้ sessionStorage (กันสับสน/กันบั๊กเดิมกลับมาโดยไม่ตั้งใจ)
+localStorage.removeItem(TOKEN_KEY);
 
 export function setAuthToken(token) {
   authToken = token;
-  if (token) localStorage.setItem(TOKEN_KEY, token);
-  else localStorage.removeItem(TOKEN_KEY);
+  if (token) sessionStorage.setItem(TOKEN_KEY, token);
+  else sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export function getAuthToken() {
