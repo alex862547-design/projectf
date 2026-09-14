@@ -175,13 +175,16 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const activeRole = selectedRole && roleList.includes(selectedRole) ? selectedRole : null;
   const activeRoleSport = activeRole ? extractSport(activeRole) : null;
   const activeMatch = activeRole ? matchForRole(activeRole, matches) : null;
-  // เรียงรายชื่อจากชั้นปีต่ำไปสูง (ปวช.1 -> ปวส.2) ตามที่ขอ แล้วค่อยกรองด้วยคำค้นหาชื่อ/รหัสต่ออีกชั้น
-  const activeMembers = activeRole
-    ? sortStudentsByYear(teammates.filter((t) => (t.role || "") === activeRole)).filter((t) => {
-        const q = searchQuery.trim().toLowerCase();
-        if (!q) return true;
-        return t.name.toLowerCase().includes(q) || t.id.toLowerCase().includes(q);
-      })
+
+  // พิมพ์ค้นหาแล้วต้องเห็นผลทันทีโดยไม่ต้องกดปุ่มลัดตำแหน่งก่อน — ตอนกำลังค้นหาจะมองข้ามตำแหน่งที่เลือกไว้
+  // แล้วค้นทั่วทั้งสีเดียวกันแทน (เรียงชั้นปีเหมือนเดิม) ส่วนตอนไม่ได้ค้นหาก็ยังคงต้องกดปุ่มลัดเหมือนเดิม
+  const searchQ = searchQuery.trim().toLowerCase();
+  const isSearching = searchQ.length > 0;
+  const matchesSearch = (t) => t.name.toLowerCase().includes(searchQ) || t.id.toLowerCase().includes(searchQ);
+  const activeMembers = isSearching
+    ? sortStudentsByYear(teammates.filter(matchesSearch))
+    : activeRole
+    ? sortStudentsByYear(teammates.filter((t) => (t.role || "") === activeRole))
     : [];
 
   return (
@@ -240,40 +243,60 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         })}
       </div>
 
-      {activeRole && (
+      {(activeRole || isSearching) && (
         <Card className="p-0 overflow-hidden">
           {activeMembers.length === 0 && (
             <div className="px-5 py-8 text-center text-xs text-slate-400">
-              {searchQuery.trim() ? "ไม่พบนักศึกษาที่ตรงกับคำค้นหา" : "ยังไม่มีนักศึกษาในตำแหน่งนี้"}
+              {isSearching ? "ไม่พบนักศึกษาที่ตรงกับคำค้นหา" : "ยังไม่มีนักศึกษาในตำแหน่งนี้"}
             </div>
           )}
 
-          {/* ตำแหน่งนักกีฬาเฉพาะทาง แต่ยังไม่มีนัดแข่งขันของกีฬานั้น */}
-          {activeMembers.length > 0 && activeRoleSport && !activeMatch && (
+          {/* ตำแหน่งนักกีฬาเฉพาะทาง แต่ยังไม่มีนัดแข่งขันของกีฬานั้น (เฉพาะโหมดกดปุ่มลัด — ตอนค้นหาแต่ละแถวอาจ
+              เป็นคนละตำแหน่งกัน จึงแยกไปเช็คเป็นรายแถวข้างล่างแทน ไม่ใช้ข้อความรวมแบบนี้บล็อกทั้งลิสต์) */}
+          {!isSearching && activeMembers.length > 0 && activeRoleSport && !activeMatch && (
             <div className="px-5 py-8 text-center text-xs text-slate-400">ยังไม่มีนัดแข่งขันสำหรับตำแหน่งนี้</div>
           )}
 
-          {activeMembers.length > 0 && activeMembers.map((t) => {
-            // ตำแหน่งนักกีฬาเฉพาะทาง: เช็คชื่อ / เช็คขาด เข้านัดของกีฬานั้น
-            if (activeRoleSport) {
-              if (!activeMatch) return null;
-              const record = matchRecord(t.id, activeMatch.id);
+          {activeMembers.length > 0 &&
+            !(!isSearching && activeRoleSport && !activeMatch) &&
+            activeMembers.map((t) => {
+              // คำนวณกีฬา/นัดแข่งขันจากตำแหน่งของ "แถวนี้เอง" เสมอ (ไม่ใช่ของแท็บที่เลือกไว้) เพราะตอนค้นหา
+              // แต่ละแถวอาจมีตำแหน่งต่างกัน — ตอนกดปุ่มลัดตามปกติ ทุกแถวก็มีตำแหน่งเดียวกับแท็บอยู่แล้วผลจะเหมือนเดิม
+              const sport = extractSport(t.role);
+              const match = sport ? matchForRole(t.role, matches) : null;
+
+              // มีตำแหน่งผูกกีฬา แต่กีฬานั้นยังไม่มีนัดแข่งขันเลย — เกิดได้เฉพาะตอนค้นหา (โหมดปุ่มลัดถูกกันไว้แล้วด้านบน)
+              if (sport && !match) {
+                return (
+                  <div key={t.id} className="flex items-center justify-between gap-4 px-5 py-3 border-b border-slate-200 dark:border-slate-800/60 last:border-0 flex-wrap">
+                    <div>
+                      <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{t.name}</div>
+                      <div className="text-xs text-slate-400">รหัส {t.id} · {t.year || "ไม่ระบุชั้นปี"} · {t.role}</div>
+                    </div>
+                    <div className="text-xs text-slate-400 shrink-0">ยังไม่มีนัดแข่งขันสำหรับตำแหน่งนี้</div>
+                  </div>
+                );
+              }
+
+              const record = match ? matchRecord(t.id, match.id) : todayGeneralCheckin(t.id);
               const isPresent = record ? (record.status || "present") === "present" : false;
               const isAbsent = record?.status === "absent";
               const hasRecord = !!record;
+
               return (
                 <div key={t.id} className="flex items-center justify-between gap-4 px-5 py-3 border-b border-slate-200 dark:border-slate-800/60 last:border-0 flex-wrap">
                   <div>
                     <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{t.name}</div>
-                    <div className="text-xs text-slate-400">รหัส {t.id} · {t.year || "ไม่ระบุชั้นปี"}</div>
+                    <div className="text-xs text-slate-400">
+                      รหัส {t.id} · {t.year || "ไม่ระบุชั้นปี"}
+                      {isSearching ? ` · ${t.role || "ไม่ระบุตำแหน่ง"}` : ""}
+                    </div>
                   </div>
                   <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                     <button
-                      onClick={() =>
-                        setPendingCheckin({ studentId: t.id, matchId: activeMatch.id, name: t.name, sport: activeMatch.sport })
-                      }
+                      onClick={() => setPendingCheckin({ studentId: t.id, matchId: match?.id ?? null, name: t.name, sport: match?.sport })}
                       disabled={isPresent || isAbsent}
-                      title={`${formatThaiDate(activeMatch.date)} · ${activeMatch.time} · ${activeMatch.venue}`}
+                      title={match ? `${formatThaiDate(match.date)} · ${match.time} · ${match.venue}` : undefined}
                       className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isPresent
                           ? "bg-emerald-500/15 text-emerald-400 cursor-default"
@@ -285,9 +308,9 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                       <CheckCircle2 size={14} className="shrink-0" /> {isPresent ? "เช็คชื่อแล้ว" : "เช็คชื่อ"}
                     </button>
                     <button
-                      onClick={() => setPendingAbsent({ studentId: t.id, name: t.name, matchId: activeMatch.id })}
+                      onClick={() => setPendingAbsent({ studentId: t.id, name: t.name, matchId: match?.id ?? null })}
                       disabled={isPresent || isAbsent}
-                      title={`${formatThaiDate(activeMatch.date)} · ${activeMatch.time} · ${activeMatch.venue}`}
+                      title={match ? `${formatThaiDate(match.date)} · ${match.time} · ${match.venue}` : undefined}
                       className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isAbsent
                           ? "bg-red-500/15 text-red-400 cursor-default"
@@ -319,68 +342,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                   </div>
                 </div>
               );
-            }
-
-            // ตำแหน่งทั่วไป (ไม่ผูกกีฬา): เช็คชื่อ / เช็คขาด ของวันนี้
-            const todayRecord = todayGeneralCheckin(t.id);
-            const isPresent = todayRecord?.status === "present";
-            const isAbsent = todayRecord?.status === "absent";
-            const hasRecordToday = isPresent || isAbsent;
-            return (
-              <div key={t.id} className="flex items-center justify-between gap-4 px-5 py-3 border-b border-slate-200 dark:border-slate-800/60 last:border-0 flex-wrap">
-                <div>
-                  <div className="text-sm font-medium text-slate-800 dark:text-slate-200">{t.name}</div>
-                  <div className="text-xs text-slate-400">รหัส {t.id} · {t.year || "ไม่ระบุชั้นปี"}</div>
-                </div>
-                <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
-                  <button
-                    onClick={() => setPendingCheckin({ studentId: t.id, matchId: null, name: t.name })}
-                    disabled={isPresent || isAbsent}
-                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-                      isPresent
-                        ? "bg-emerald-500/15 text-emerald-400 cursor-default"
-                        : isAbsent
-                        ? "bg-slate-100 dark:bg-slate-800 text-slate-600 cursor-not-allowed"
-                        : "bg-indigo-600 text-white hover:bg-indigo-700"
-                    }`}
-                  >
-                    <CheckCircle2 size={14} className="shrink-0" /> {isPresent ? "เช็คชื่อแล้ว" : "เช็คชื่อ"}
-                  </button>
-                  <button
-                    onClick={() => setPendingAbsent({ studentId: t.id, name: t.name, matchId: null })}
-                    disabled={isPresent || isAbsent}
-                    className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
-                      isAbsent
-                        ? "bg-red-500/15 text-red-400 cursor-default"
-                        : isPresent
-                        ? "bg-slate-100 dark:bg-slate-800 text-slate-600 cursor-not-allowed"
-                        : "bg-white dark:bg-slate-900 text-red-400 border border-red-900/50 hover:bg-red-500/10"
-                    }`}
-                  >
-                    <XCircle size={14} className="shrink-0" /> {isAbsent ? "เช็คขาดแล้ว" : "เช็คขาด"}
-                  </button>
-                  {hasRecordToday && (
-                    <button
-                      onClick={() => setThreadFor({ studentId: t.id, date: todayStr })}
-                      title="ดูข้อความของวันนี้"
-                      className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                    >
-                      <MessageCircle size={14} className="shrink-0" /> ดูข้อความ
-                    </button>
-                  )}
-                  {hasRecordToday && (
-                    <button
-                      onClick={() => setPendingUndo({ checkinId: todayRecord.id, name: t.name })}
-                      title="ยกเลิกรายการนี้ (กรณีเช็คผิด) — เช็คใหม่ได้ทันทีหลังยกเลิก"
-                      className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-amber-500 border border-amber-300 dark:border-amber-500/40 hover:bg-amber-500/10"
-                    >
-                      <RotateCcw size={14} className="shrink-0" /> ยกเลิก
-                    </button>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+            })}
         </Card>
       )}
 
