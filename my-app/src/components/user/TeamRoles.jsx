@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Briefcase } from "lucide-react";
+import { Briefcase, Search } from "lucide-react";
 import Card from "../common/Card";
 import { api } from "../../api";
 
@@ -17,6 +17,7 @@ export default function TeamRoles({ student, students, setStudents, roles }) {
   const [error, setError] = useState("");
   const [selectedYearGroup, setSelectedYearGroup] = useState("all");
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const roleOptions = roles && roles.length > 0 ? roles : ["ผู้เข้าร่วมทั่วไป"];
 
   const teammates = students.filter((s) => s.team === student.team);
@@ -32,9 +33,15 @@ export default function TeamRoles({ student, students, setStudents, roles }) {
     setSelectedYearGroup(g);
     setSelectedRoom(null);
   };
-  const visibleTeammates = teammates.filter(
-    (t) => selectedYearGroup === "all" || (yearGroupOf(t.year) === selectedYearGroup && (!selectedRoom || t.year === selectedRoom))
-  );
+  const visibleTeammates = teammates
+    .filter(
+      (t) => selectedYearGroup === "all" || (yearGroupOf(t.year) === selectedYearGroup && (!selectedRoom || t.year === selectedRoom))
+    )
+    .filter((t) => {
+      const q = searchQuery.trim().toLowerCase();
+      if (!q) return true;
+      return t.name.toLowerCase().includes(q) || t.id.toLowerCase().includes(q);
+    });
 
   const updateRole = async (id, role) => {
     try {
@@ -52,6 +59,16 @@ export default function TeamRoles({ student, students, setStudents, roles }) {
         <Briefcase size={13} /> ปรับตำแหน่ง/กีฬาของนักศึกษาในสีเดียวกันได้ (เลือกได้คนละ 1 ตำแหน่งเท่านั้น)
       </div>
       {error && <div className="text-xs text-red-400">{error}</div>}
+
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="ค้นหาชื่อหรือรหัสนักศึกษา"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 placeholder-slate-500 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <button

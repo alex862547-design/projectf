@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode } from "lucide-react";
+import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AbsentNoteDialog from "../common/AbsentNoteDialog";
@@ -52,6 +52,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const [toast, setToast] = useState(null); // { type: "success" | "error", message }
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่งที่กำลังเปิดดูรายชื่ออยู่ (ปุ่มลัด)
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // หาว่าใครเป็นคนเช็คชื่อ/เช็คขาดให้ในวันที่เปิดหน้าต่างข้อความอยู่ (โชว์ในหัวหน้าต่าง AttendanceThreadModal)
   // อยู่ก่อน early return ด้านล่างเสมอ เพื่อให้ลำดับ hook คงที่ทุกครั้งที่ render (ตามกฎของ React hooks)
@@ -174,8 +175,14 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const activeRole = selectedRole && roleList.includes(selectedRole) ? selectedRole : null;
   const activeRoleSport = activeRole ? extractSport(activeRole) : null;
   const activeMatch = activeRole ? matchForRole(activeRole, matches) : null;
-  // เรียงรายชื่อจากชั้นปีต่ำไปสูง (ปวช.1 -> ปวส.2) ตามที่ขอ
-  const activeMembers = activeRole ? sortStudentsByYear(teammates.filter((t) => (t.role || "") === activeRole)) : [];
+  // เรียงรายชื่อจากชั้นปีต่ำไปสูง (ปวช.1 -> ปวส.2) ตามที่ขอ แล้วค่อยกรองด้วยคำค้นหาชื่อ/รหัสต่ออีกชั้น
+  const activeMembers = activeRole
+    ? sortStudentsByYear(teammates.filter((t) => (t.role || "") === activeRole)).filter((t) => {
+        const q = searchQuery.trim().toLowerCase();
+        if (!q) return true;
+        return t.name.toLowerCase().includes(q) || t.id.toLowerCase().includes(q);
+      })
+    : [];
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-5">
@@ -192,6 +199,16 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         </button>
       </div>
       {error && <div className="text-xs text-red-400">{error}</div>}
+
+      <div className="relative">
+        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+        <input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="ค้นหาชื่อหรือรหัสนักศึกษา"
+          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 placeholder-slate-500 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+      </div>
 
       {roleList.length === 0 && (
         <div className="text-xs text-slate-400">ยังไม่มีตำแหน่งในระบบ</div>
@@ -226,7 +243,9 @@ export default function UserCheckin({ student, students, matches, checkins, setC
       {activeRole && (
         <Card className="p-0 overflow-hidden">
           {activeMembers.length === 0 && (
-            <div className="px-5 py-8 text-center text-xs text-slate-400">ยังไม่มีนักศึกษาในตำแหน่งนี้</div>
+            <div className="px-5 py-8 text-center text-xs text-slate-400">
+              {searchQuery.trim() ? "ไม่พบนักศึกษาที่ตรงกับคำค้นหา" : "ยังไม่มีนักศึกษาในตำแหน่งนี้"}
+            </div>
           )}
 
           {/* ตำแหน่งนักกีฬาเฉพาะทาง แต่ยังไม่มีนัดแข่งขันของกีฬานั้น */}
