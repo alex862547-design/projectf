@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
@@ -52,6 +52,14 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const [toast, setToast] = useState(null); // { type: "success" | "error", message }
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่งที่กำลังเปิดดูรายชื่ออยู่ (ปุ่มลัด)
   const [scannerOpen, setScannerOpen] = useState(false);
+
+  // หาว่าใครเป็นคนเช็คชื่อ/เช็คขาดให้ในวันที่เปิดหน้าต่างข้อความอยู่ (โชว์ในหัวหน้าต่าง AttendanceThreadModal)
+  // อยู่ก่อน early return ด้านล่างเสมอ เพื่อให้ลำดับ hook คงที่ทุกครั้งที่ render (ตามกฎของ React hooks)
+  const threadCheckedBy = useMemo(() => {
+    if (!threadFor) return null;
+    const rec = checkins.find((c) => c.studentId === threadFor.studentId && c.date === threadFor.date && c.checkedBy);
+    return rec ? rec.checkedBy : null;
+  }, [checkins, threadFor]);
 
   if (!student.canCheckin) {
     return (
@@ -403,6 +411,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         studentId={threadFor?.studentId}
         date={threadFor?.date}
         viewerName={student.name}
+        checkedBy={threadCheckedBy}
         onClose={() => setThreadFor(null)}
       />
 

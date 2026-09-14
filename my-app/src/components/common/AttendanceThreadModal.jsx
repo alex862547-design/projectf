@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { X, Send, MessageCircle } from "lucide-react";
+import { X, Send, MessageCircle, UserCheck } from "lucide-react";
 import { api } from "../../api";
 import { formatThaiDate } from "../../utils/helpers";
 
@@ -7,7 +7,10 @@ import { formatThaiDate } from "../../utils/helpers";
 // กิจกรรม (UserCheckin) และจากปฏิทินในหน้าประวัติของฉัน (UserHistory) โหลด/ส่งข้อความผ่าน api.js
 // ใช้ `viewerName` (ชื่อคนที่ล็อกอินอยู่ตอนนี้) เทียบกับชื่อผู้ส่งแต่ละข้อความ เพื่อตัดสินว่าบับเบิลไหน
 // เป็น "ของเรา" (ขึ้นขวา มีสี) กับ "ของอีกฝ่าย" (ขึ้นซ้าย ไม่มีสี) — ไม่ใช้ role เดารูปคนพิมพ์เพราะจะผิดได้
-export default function AttendanceThreadModal({ open, studentId, date, viewerName, onClose }) {
+// `checkedBy` (ถ้ามี — คนเรียกใช้หามาจากรายการ checkins ที่โหลดไว้อยู่แล้ว ไม่ได้ดึงเองในนี้) คือ
+// { name, code, isAdmin } ของคนที่กดเช็คชื่อ/เช็คขาดของวันนี้ให้ โชว้ไว้ใต้หัวข้อวันที่ — เป็น null ถ้าเป็นข้อมูล
+// เก่าก่อนมีฟีเจอร์นี้ (ไม่เคยบันทึกไว้ว่าใครเช็ค) ก็แค่ไม่โชว์แถวนี้ ไม่ error
+export default function AttendanceThreadModal({ open, studentId, date, viewerName, checkedBy, onClose }) {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState("");
@@ -47,14 +50,23 @@ export default function AttendanceThreadModal({ open, studentId, date, viewerNam
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[80vh]"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
-          <div className="flex items-center gap-2">
-            <MessageCircle size={16} className="text-indigo-400" />
-            <div className="text-sm font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: "Kanit, sans-serif" }}>
-              ข้อความวันที่ {formatThaiDate(date)}
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <MessageCircle size={16} className="text-indigo-400 shrink-0" />
+            <div className="min-w-0">
+              <div className="text-sm font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: "Kanit, sans-serif" }}>
+                ข้อความวันที่ {formatThaiDate(date)}
+              </div>
+              {checkedBy && (
+                <div className="text-[11px] text-slate-400 mt-0.5 flex items-center gap-1 truncate">
+                  <UserCheck size={11} className="shrink-0" />
+                  เช็คชื่อโดย {checkedBy.name}
+                  {checkedBy.isAdmin ? " (ผู้ดูแลระบบ)" : checkedBy.code ? ` · รหัส ${checkedBy.code}` : ""}
+                </div>
+              )}
             </div>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200 shrink-0">
             <X size={16} />
           </button>
         </div>

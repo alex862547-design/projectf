@@ -50,6 +50,14 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
     [mine]
   );
 
+  // หาว่าใครเป็นคนเช็คชื่อ/เช็คขาดให้ในวันที่เปิดหน้าต่างข้อความอยู่ (โชว์ในหัวหน้าต่าง AttendanceThreadModal)
+  // เป็น null ถ้าไม่มีวันเปิดอยู่ หรือแถวเช็คชื่อวันนั้นเป็นข้อมูลเก่าที่ไม่เคยบันทึกไว้ว่าใครเช็ค
+  const openDateCheckedBy = useMemo(() => {
+    if (!openDate) return null;
+    const rec = mine.find((c) => c.date === openDate && c.checkedBy);
+    return rec ? rec.checkedBy : null;
+  }, [mine, openDate]);
+
   // นับจำนวนวัน "มา" กับ "ขาด" จากวันจัดกิจกรรมที่ผ่านมาแล้วหรือคือวันนี้ (วันในอนาคตยังไม่มีผลจึงไม่นับ)
   // คำนวณใหม่ทุกครั้งที่ checkins/eventDays เปลี่ยน (ข้อมูลจะรีเฟรชอัตโนมัติทุก 4 วิ จาก App.jsx อยู่แล้ว)
   const today = (() => {
@@ -222,6 +230,7 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
         studentId={student.id}
         date={openDate}
         viewerName={student.name}
+        checkedBy={openDateCheckedBy}
         onClose={() => setOpenDate(null)}
       />
     </div>
