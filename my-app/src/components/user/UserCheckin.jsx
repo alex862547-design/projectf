@@ -235,9 +235,9 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     activitySubtitle = "เลือกตำแหน่ง/กีฬาด้านล่างเพื่อเริ่มเช็คชื่อ";
   } else if (activeRoleSport) {
     activityTitle = activeRoleSport;
-    if (activeMatch) {
-      activitySubtitle = `${formatThaiDate(activeMatch.date)} · เวลา ${formatShortTime(activeMatch.time)} น. · ${activeMatch.venue}`;
-    } else {
+    // ไม่ต้องซ้ำวันที่/เวลา/สนามที่นี่ — วันที่ก็โชว์อยู่แล้วในการ์ดเลือกวันที่ด้านบน ส่วนเวลา/สนามดูได้จาก
+    // tooltip ตอนชี้ปุ่มเช็คชื่อของนักศึกษาแต่ละคน (แต่ยังต้องบอกไว้ถ้ากีฬานี้ยังไม่มีนัดแข่งขันเลย)
+    if (!activeMatch) {
       activityTone = "amber";
       activitySubtitle = "ยังไม่มีนัดแข่งขันสำหรับกีฬานี้ในระบบ";
     }
@@ -338,7 +338,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
             <div className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
               {activityTitle}
             </div>
-            <div className="text-xs text-slate-400 mt-0.5 truncate">{activitySubtitle}</div>
+            {activitySubtitle && <div className="text-xs text-slate-400 mt-0.5 truncate">{activitySubtitle}</div>}
           </div>
         </div>
       </div>
