@@ -69,6 +69,19 @@ export function normalizeSportName(str) {
   return (str || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/\s+/g, "");
 }
 
+// หานัดแข่งขันที่ตรงกับตำแหน่งนี้ (ใช้เฉพาะตำแหน่งที่เป็นนักกีฬาเฉพาะทาง) — จับคู่แค่ชื่อกีฬา ไม่กรองด้วยวันที่ของนัด
+// เพราะ "วันที่" ของ checkin (ที่เลือกเช็คชื่อย้อนหลังได้) เป็นแค่วันที่บันทึกว่าเช็คชื่อวันไหน ไม่ใช่ว่าต้องตรงกับ
+// วันที่ตั้งไว้ของนัดแข่งขันเป๊ะๆ (นัดแข่งหนึ่งอาจถูกเลื่อน/เช็คชื่อล่วงหน้า-ย้อนหลังได้อยู่แล้วในทางปฏิบัติ)
+export function matchForRole(role, matches) {
+  const roleSport = extractSportFromRole(role);
+  if (!roleSport) return null;
+  const rs = normalizeSportName(roleSport);
+  return matches.find((m) => {
+    const ms = normalizeSportName(m.sport);
+    return ms.includes(rs) || rs.includes(ms);
+  });
+}
+
 // เรียงรายชื่อนักศึกษาตามชั้นปีจาก ปวช.1 ไปจนถึง ปวส.2 (แล้วเรียงเลขห้องต่อ)
 const YEAR_GROUP_ORDER = ["ปวช.1", "ปวช.2", "ปวช.3", "ปวส.1", "ปวส.2"];
 function yearSortKey(year) {

@@ -1,13 +1,13 @@
 import React, { useMemo, useRef, useState } from "react";
 import {
-  CalendarDays, ChevronLeft, ChevronRight, ChevronDown, Search, Trophy, Users,
-  Pencil, Check, X, Trash2, Plus, RotateCcw, UserPlus,
+  CalendarDays, ChevronLeft, ChevronRight, Search, Trophy, Users,
+  Pencil, Check, X, Trash2, Plus, RotateCcw, UserPlus, CheckCircle2, XCircle,
 } from "lucide-react";
 import Card from "../common/Card";
 import Badge from "../common/Badge";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { api } from "../../api";
-import { formatThaiFullDate, formatShortTime } from "../../utils/helpers";
+import { formatThaiFullDate, formatShortTime, sortStudentsByYear, extractSportFromRole as extractSport, matchForRole } from "../../utils/helpers";
 
 function pad2(n) {
   return String(n).padStart(2, "0");
@@ -16,11 +16,11 @@ function toIso(d) {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
-// เมนูแอดมิน "จัดการเช็คชื่อ" — ดูรายการเช็คชื่อ/เช็คขาดของทุกกิจกรรมในวันที่เลือกได้ (ย้อนหลังได้ทุกวัน
-// ไม่จำกัดแค่วันนี้) จัดกลุ่มตาม "กิจกรรม" ให้อ่านง่าย: ถ้าผูกกับนัดแข่งขัน (เช่น นักกีฬาฟุตบอล) จะกลุ่มตาม
-// นัดแข่งขันนั้น ถ้าเป็นตำแหน่งทั่วไป (เจ้าหน้าที่ทีม, กองเชียร์ ฯลฯ) จะกลุ่มตามตำแหน่ง แก้ไขสถานะ/เวลา หรือลบ
-// รายการที่บันทึกผิดได้ทันที และเพิ่มรายการเช็คชื่อให้นักศึกษาคนไหนก็ได้ (กรณีลืมเช็คแล้วนักศึกษาแจ้งย้อนหลัง)
-export default function AdminCheckins({ checkins, setCheckins, students, matches }) {
+// เมนูแอดมิน "จัดการเช็คชื่อ" — ดูและเช็คชื่อได้เองในวันที่เลือก (ย้อนหลังได้ทุกวัน ไม่จำกัดแค่วันนี้)
+// จัดกลุ่มตาม "ตำแหน่ง/ประเภทกิจกรรม" ทุกตำแหน่งที่มีในระบบ (เหมือนหน้าเช็คชื่อของนักศึกษา แต่แอดมินเห็นทุกสี
+// ทุกตำแหน่งพร้อมกัน ไม่ถูกจำกัดแค่สี/ตำแหน่งตัวเอง) แต่ละแถวถ้ายังไม่เช็คชื่อจะมีปุ่ม "เช็คชื่อ/เช็คขาด" กดเช็ค
+// ได้ทันทีเหมือนฝั่งนักศึกษา ถ้าเช็คไปแล้วจะแก้ไขสถานะ/เวลา หรือลบรายการที่บันทึกผิดได้เลย
+export default function AdminCheckins({ checkins, setCheckins, students, matches, roles }) {
   const todayStr = toIso(new Date());
   const [selectedDate, setSelectedDate] = useState(todayStr);
   const dateInputRef = useRef(null);
@@ -34,7 +34,7 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
   const [addOpen, setAddOpen] = useState(false);
   const [addStudentQuery, setAddStudentQuery] = useState("");
   const [addStudent, setAddStudent] = useState(null);
-  const [addMatchId, setAddMatchId] = useState("");
+  const [addRole, setAddRole] = useState("");
   const [addStatus, setAddStatus] = useState("present");
 
   const isToday = selectedDate === todayStr;
@@ -59,43 +59,56 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
     setSelectedDate(toIso(d));
   };
 
-  const studentsById = useMemo(() => new Map(students.map((s) => [s.id, s])), [students]);
-
   const dayCheckins = useMemo(() => checkins.filter((c) => c.date === selectedDate), [checkins, selectedDate]);
-  const dayMatches = useMemo(() => matches.filter((m) => m.date === selectedDate), [matches, selectedDate]);
 
-  // จัดกลุ่มรายการเช็คชื่อของวันนี้ตาม "กิจกรรม" — ผูกนัดแข่งขัน (matchId ไม่ว่าง) กลุ่มตามนัดนั้น
-  // ไม่ผูกนัดแข่งขัน (เช่น เจ้าหน้าที่ทีม/กองเชียร์) กลุ่มตามตำแหน่งของนักศึกษาแทน
-  const groups = useMemo(() => {
+  // ตำแหน่ง/ประเภทกิจกรรมทั้งหมดในระบบ — เอามาจากรายการตำแหน่งที่แอดมินตั้งไว้ (roles) รวมกับตำแหน่งที่นักศึกษา
+  // บางคนอาจยังติดอยู่แต่ถูกลบออกจากรายการไปแล้ว (กันตกหล่น ไม่ให้ใครหายไปจากทุกกลุ่มเลย)
+  const allRoleNames = useMemo(() => {
+    const set = new Set(roles || []);
+    students.forEach((s) => set.add(s.role || "ไม่ระบุตำแหน่ง"));
+    return [...set];
+  }, [roles, students]);
+
+  // แต่ละตำแหน่งผูกกับ "กิจกรรม" อะไร — ตำแหน่งนักกีฬาเฉพาะทางผูกกับนัดแข่งขันของกีฬานั้น (หากีฬาให้จากชื่อ
+  // นัดแข่งขัน ไม่กรองด้วยวันที่ เพราะนัดหนึ่งใช้เช็คชื่อย้อนหลัง/ล่วงหน้าได้ วันที่ของ checkin เป็นคนละเรื่องกับ
+  // วันที่ตั้งไว้ของนัดแข่งขัน) ตำแหน่งทั่วไป (เจ้าหน้าที่ทีม, กองเชียร์ ฯลฯ) ไม่ผูกกับนัดแข่งขันใด
+  const activityByRole = useMemo(() => {
     const map = new Map();
-    for (const c of dayCheckins) {
-      const student = studentsById.get(c.studentId);
-      if (!student) continue;
-      let key, label, subtitle, sortKey, icon;
-      if (c.matchId != null) {
-        const match = matches.find((m) => m.id === c.matchId);
-        key = `match-${c.matchId}`;
-        label = match ? match.sport : `นัดแข่งขัน #${c.matchId}`;
-        subtitle = match
+    for (const role of allRoleNames) {
+      const sport = extractSport(role);
+      const match = sport ? matchForRole(role, matches) : null;
+      map.set(role, { sport, match, matchId: match ? match.id : null });
+    }
+    return map;
+  }, [allRoleNames, matches]);
+
+  // จัดกลุ่มเป็น "รายชื่อทั้งหมดของแต่ละตำแหน่ง" (เหมือนหน้าเช็คชื่อของนักศึกษา) ไม่ใช่แค่คนที่เช็คไปแล้ว —
+  // ทำให้แอดมินเห็นครบทุกคนพร้อมปุ่มเช็คชื่อ/เช็คขาดให้คนที่ยังไม่เช็ค และแก้ไข/ลบให้คนที่เช็คไปแล้วได้ในที่เดียว
+  const groups = useMemo(() => {
+    const list = allRoleNames.map((role) => {
+      const { sport, match, matchId } = activityByRole.get(role);
+      const label = sport || role;
+      const subtitle = sport
+        ? match
           ? `เวลา ${formatShortTime(match.time)} น. · ${match.venue}${match.round ? " · " + match.round : ""}`
-          : "ไม่พบข้อมูลนัดแข่งขันนี้แล้ว";
-        sortKey = `0-${label}`;
-        icon = Trophy;
-      } else {
-        label = student.role || "ไม่ระบุตำแหน่ง";
-        key = `role-${label}`;
-        subtitle = "เช็คชื่อทั่วไป ไม่ผูกกับนัดแข่งขัน";
-        sortKey = `1-${label}`;
-        icon = Users;
-      }
-      if (!map.has(key)) map.set(key, { key, label, subtitle, sortKey, icon, rows: [] });
-      map.get(key).rows.push({ checkin: c, student });
-    }
-    for (const g of map.values()) {
-      g.rows.sort((a, b) => a.student.name.localeCompare(b.student.name, "th"));
-    }
-    return [...map.values()].sort((a, b) => a.sortKey.localeCompare(b.sortKey, "th"));
-  }, [dayCheckins, studentsById, matches]);
+          : "ยังไม่มีนัดแข่งขันสำหรับกีฬานี้ในระบบ"
+        : "เช็คชื่อทั่วไป ไม่ผูกกับนัดแข่งขัน";
+      const roster = sortStudentsByYear(students.filter((s) => (s.role || "ไม่ระบุตำแหน่ง") === role)).map((student) => ({
+        student,
+        checkin: dayCheckins.find((c) => c.studentId === student.id && (c.matchId ?? null) === matchId) || null,
+      }));
+      return {
+        key: `role-${role}`,
+        label,
+        subtitle,
+        icon: sport ? Trophy : Users,
+        sortKey: sport ? `0-${label}` : `1-${label}`,
+        matchId,
+        rows: roster,
+      };
+    });
+    return list.filter((g) => g.rows.length > 0).sort((a, b) => a.sortKey.localeCompare(b.sortKey, "th"));
+  }, [allRoleNames, activityByRole, students, dayCheckins]);
 
   const searchQ = searchQuery.trim().toLowerCase();
   const visibleGroups = searchQ
@@ -111,6 +124,16 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
 
   const presentCount = dayCheckins.filter((c) => (c.status || "present") === "present").length;
   const absentCount = dayCheckins.filter((c) => c.status === "absent").length;
+
+  const quickCheckin = async (student, matchId, status) => {
+    try {
+      const created = await api.createCheckin({ studentId: student.id, matchId, status, date: selectedDate });
+      setCheckins((prev) => [...prev, created]);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const updateStatus = async (checkin, status) => {
     try {
@@ -150,9 +173,22 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
     }
   };
 
+  // ตัวเลือก "ประเภทกิจกรรม" ในฟอร์มเพิ่มรายการ — ตัวแรกคือ "ทั่วไป" (ไม่ผูกกีฬา) ตามด้วยทุกตำแหน่งในระบบ
+  // เรียงตามชื่อกีฬา/ตำแหน่งให้หาง่าย
+  const activityOptions = useMemo(() => {
+    const opts = allRoleNames.map((role) => {
+      const { sport, matchId } = activityByRole.get(role);
+      return { role, label: sport || role, matchId };
+    });
+    opts.sort((a, b) => a.label.localeCompare(b.label, "th"));
+    return [{ role: "", label: "ทั่วไป (ไม่ผูกกิจกรรมกีฬา)", matchId: null }, ...opts];
+  }, [allRoleNames, activityByRole]);
+
+  const selectedAddActivity = activityOptions.find((o) => o.role === addRole) || activityOptions[0];
+  const addMatchIdNum = selectedAddActivity.matchId;
+
   // นักศึกษาที่ค้นเจอสำหรับฟอร์ม "เพิ่มรายการ" — กันไม่ให้เลือกคนที่มีรายการของกิจกรรมเดียวกัน+วันเดียวกันซ้ำอยู่แล้ว
   const addQ = addStudentQuery.trim().toLowerCase();
-  const addMatchIdNum = addMatchId ? Number(addMatchId) : null;
   const alreadyCheckedIds = new Set(
     dayCheckins.filter((c) => (c.matchId ?? null) === addMatchIdNum).map((c) => c.studentId)
   );
@@ -174,7 +210,7 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
       setCheckins((prev) => [...prev, created]);
       setAddStudent(null);
       setAddStudentQuery("");
-      setAddMatchId("");
+      setAddRole("");
       setAddStatus("present");
       setAddOpen(false);
       setError("");
@@ -256,7 +292,7 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
           <input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="ค้นหาชื่อหรือรหัสนักศึกษาในวันนี้"
+            placeholder="ค้นหาชื่อหรือรหัสนักศึกษา"
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 placeholder-slate-500 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
@@ -319,16 +355,15 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
             </div>
 
             <div>
-              <label className="block text-[11px] text-slate-400 mb-1">กิจกรรม/นัดแข่งขัน</label>
+              <label className="block text-[11px] text-slate-400 mb-1">ประเภทกิจกรรม</label>
               <select
-                value={addMatchId}
-                onChange={(e) => setAddMatchId(e.target.value)}
+                value={addRole}
+                onChange={(e) => setAddRole(e.target.value)}
                 className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="">ไม่ผูกนัดแข่งขัน (ทั่วไป)</option>
-                {dayMatches.map((m) => (
-                  <option key={m.id} value={m.id}>
-                    {m.sport} · {formatShortTime(m.time)} น. · {m.venue}
+                {activityOptions.map((o) => (
+                  <option key={o.role || "general"} value={o.role}>
+                    {o.label}
                   </option>
                 ))}
               </select>
@@ -357,12 +392,13 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
 
       {visibleGroups.length === 0 && (
         <Card className="p-8 text-center text-sm text-slate-400">
-          {searchQ ? "ไม่พบรายการที่ตรงกับคำค้นหา" : "ยังไม่มีรายการเช็คชื่อในวันนี้"}
+          {searchQ ? "ไม่พบนักศึกษาที่ตรงกับคำค้นหา" : "ยังไม่มีตำแหน่ง/นักศึกษาในระบบ"}
         </Card>
       )}
 
       {visibleGroups.map((g) => {
         const Icon = g.icon;
+        const checkedCount = g.rows.filter((r) => r.checkin).length;
         return (
           <Card key={g.key} className="p-0 overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-200 dark:border-slate-800/60 bg-slate-50/60 dark:bg-slate-800/30">
@@ -375,13 +411,15 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
                 </div>
                 <div className="text-xs text-slate-400">{g.subtitle}</div>
               </div>
-              <span className="ml-auto shrink-0 text-xs font-semibold text-slate-400">{g.rows.length} คน</span>
+              <span className="ml-auto shrink-0 text-xs font-semibold text-slate-400">
+                เช็คแล้ว {checkedCount}/{g.rows.length} คน
+              </span>
             </div>
 
             {g.rows.map(({ checkin, student }) => {
-              const isEditing = editingId === checkin.id;
+              const isEditing = checkin && editingId === checkin.id;
               return (
-                <div key={checkin.id} className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-200 dark:border-slate-800/60 last:border-0 flex-wrap">
+                <div key={student.id} className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-200 dark:border-slate-800/60 last:border-0 flex-wrap">
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="min-w-0">
                       <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{student.name}</div>
@@ -390,7 +428,24 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
                     <Badge team={student.team} />
                   </div>
 
-                  {isEditing ? (
+                  {!checkin && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        onClick={() => quickCheckin(student, g.matchId, "present")}
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
+                      >
+                        <CheckCircle2 size={14} /> เช็คชื่อ
+                      </button>
+                      <button
+                        onClick={() => quickCheckin(student, g.matchId, "absent")}
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-white dark:bg-slate-900 text-red-400 border border-red-900/50 text-xs font-semibold px-3.5 py-2 hover:bg-red-500/10"
+                      >
+                        <XCircle size={14} /> เช็คขาด
+                      </button>
+                    </div>
+                  )}
+
+                  {checkin && isEditing && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <select
                         value={editStatus}
@@ -414,7 +469,9 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
                         <X size={16} />
                       </button>
                     </div>
-                  ) : (
+                  )}
+
+                  {checkin && !isEditing && (
                     <div className="flex items-center gap-2 flex-wrap">
                       <select
                         value={checkin.status || "present"}

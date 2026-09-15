@@ -8,36 +8,10 @@ import QRScannerModal from "../common/QRScannerModal";
 import MessageInboxModal from "../common/MessageInboxModal";
 import Toast from "../common/Toast";
 import { api } from "../../api";
-import { formatThaiDate, formatThaiFullDate, formatShortTime, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
-
-function normalize(str) {
-  return (str || "")
-    .toLowerCase()
-    .replace(/\(.*?\)/g, "")
-    .replace(/\s+/g, "");
-}
-
-// ดึงชื่อกีฬาเฉพาะออกจากตำแหน่ง เช่น "นักกีฬาฟุตบอล" -> "ฟุตบอล"
-// ถ้าตำแหน่งไม่ได้ขึ้นต้นด้วย "นักกีฬา" (เจ้าหน้าที่ทีม, กองเชียร์, staff ฯลฯ) -> null (ตำแหน่งทั่วไป ไม่ผูกกีฬาใดกีฬาหนึ่ง)
-function extractSport(role) {
-  if (!role) return null;
-  const stripped = role.replace(/^นักกีฬา/, "").trim();
-  if (stripped === role.trim()) return null;
-  return stripped || null;
-}
-
-// หานัดแข่งขันที่ตรงกับตำแหน่งนี้ (ใช้เฉพาะตำแหน่งที่เป็นนักกีฬาเฉพาะทาง) — จับคู่แค่ชื่อกีฬา ไม่กรองด้วยวันที่ของนัด
-// เพราะ "วันที่" ของ checkin (ที่เลือกเช็คชื่อย้อนหลังได้) เป็นแค่วันที่บันทึกว่าเช็คชื่อวันไหน ไม่ใช่ว่าต้องตรงกับ
-// วันที่ตั้งไว้ของนัดแข่งขันเป๊ะๆ (นัดแข่งหนึ่งอาจถูกเลื่อน/เช็คชื่อล่วงหน้า-ย้อนหลังได้อยู่แล้วในทางปฏิบัติ)
-function matchForRole(role, matches) {
-  const roleSport = extractSport(role);
-  if (!roleSport) return null;
-  const rs = normalize(roleSport);
-  return matches.find((m) => {
-    const ms = normalize(m.sport);
-    return ms.includes(rs) || rs.includes(ms);
-  });
-}
+import {
+  formatThaiDate, formatThaiFullDate, formatShortTime, sortStudentsByYear, parseCheckinQRValue,
+  extractSportFromRole as extractSport, matchForRole,
+} from "../../utils/helpers";
 
 // แท็บ "เช็คชื่อกิจกรรม" — ใช้ได้เฉพาะนักศึกษาที่ได้รับสิทธิ์ can_checkin (เจ้าหน้าที่ทีม) ให้เช็คชื่อ
 // เพื่อนในทีมสีเดียวกันได้ ขอบเขตแบ่งเป็น 2 ระดับ: "หัวหน้าสี" เช็คชื่อได้ทุกตำแหน่งในสีตัวเอง (มีปุ่มลัดสลับ
