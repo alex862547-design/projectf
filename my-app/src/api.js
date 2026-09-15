@@ -75,6 +75,8 @@ export const api = {
 
   getAttendanceMessages: (studentId, date) =>
     request(`/attendance-messages?studentId=${encodeURIComponent(studentId)}&date=${encodeURIComponent(date)}`),
+  getAttendanceMessageDates: (studentId) =>
+    request(`/attendance-messages/dates?studentId=${encodeURIComponent(studentId)}`),
   sendAttendanceMessage: (data) =>
     request("/attendance-messages", { method: "POST", body: JSON.stringify(data) }),
   getUnreadMessageCount: () => request("/attendance-messages/unread-count"),

@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Clock, MessageCircle, PieChart, ChevronLeft, ChevronRight } from "lucide-react";
 import Card from "../common/Card";
 import AttendanceThreadModal from "../common/AttendanceThreadModal";
 import AttendanceDonut from "../common/AttendanceDonut";
 import AttendanceBarChart from "./AttendanceBarChart";
+import { api } from "../../api";
 import { formatThaiDate } from "../../utils/helpers";
 
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
@@ -35,6 +36,17 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
 
   const now = new Date();
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() });
+
+  // วันที่ที่มีข้อความคุยกับผู้เช็คชื่ออยู่จริง (ไม่ใช่แค่มีการเช็คชื่อ/เช็คขาด) ใช้ตัดสินว่าจะโชว์สัญลักษณ์
+  // "มีข้อความ" บนช่องปฏิทินไหนบ้าง โหลดใหม่ทุกครั้งที่เปิด/ปิดหน้าต่างแชท เผื่อเพิ่งส่งข้อความแรกของวันนั้นไป
+  const [messageDates, setMessageDates] = useState(new Set());
+  const loadMessageDates = () => {
+    api
+      .getAttendanceMessageDates(student.id)
+      .then((dates) => setMessageDates(new Set(dates)))
+      .catch(() => {});
+  };
+  useEffect(loadMessageDates, [student.id]);
 
   const mine = checkins
     .filter((c) => c.studentId === student.id)
@@ -153,6 +165,7 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
                 const present = presentDates.has(iso);
                 const absent = absentDates.has(iso);
                 const hasRecord = present || absent;
+                const hasMessage = messageDates.has(iso);
                 const clickable = isEventDay || hasRecord;
                 const isToday = iso === today;
 
@@ -176,15 +189,18 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
                     disabled={!clickable}
                     onClick={() => clickable && setOpenDate(iso)}
                     title={
-                      absent ? "เช็คขาด (กดดูข้อความ)" : present ? "มาเข้าร่วม (กดดูข้อความ)" : isUpcoming ? "ยังไม่เริ่มกิจกรรม" : isEventDay ? "ไม่มา" : ""
+                      (absent ? "เช็คขาด (กดดูข้อความ)" : present ? "มาเข้าร่วม (กดดูข้อความ)" : isUpcoming ? "ยังไม่เริ่มกิจกรรม" : isEventDay ? "ไม่มา" : "") +
+                      (hasMessage ? " · มีข้อความ" : "")
                     }
                     className={`relative h-full min-h-8 flex items-center justify-center rounded-md text-xs ${cls} ${
                       clickable ? "cursor-pointer hover:ring-2 hover:ring-indigo-400" : "cursor-default"
                     } ${isToday ? "ring-2 ring-indigo-500" : ""}`}
                   >
                     {day}
-                    {hasRecord && (
-                      <MessageCircle size={8} className="absolute bottom-0 right-0 opacity-70" />
+                    {hasMessage && (
+                      <span className="absolute -top-1 -right-1 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-indigo-500 ring-2 ring-white dark:ring-slate-900">
+                        <MessageCircle size={8} className="text-white" fill="currentColor" />
+                      </span>
                     )}
                   </button>
                 );
@@ -196,6 +212,12 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-red-500/15 inline-block" /> ไม่มา / เช็คขาด</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-sky-500/15 inline-block" /> ยังไม่เริ่มกิจกรรม</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded border border-slate-300 dark:border-slate-700 inline-block" /> ไม่ใช่วันจัดกิจกรรม</span>
+              <span className="flex items-center gap-1">
+                <span className="relative w-2.5 h-2.5 rounded bg-slate-300 dark:bg-slate-700 inline-block">
+                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                </span>
+                มีข้อความ
+              </span>
             </div>
           </Card>
         </div>
@@ -231,7 +253,10 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
         date={openDate}
         viewerName={student.name}
         checkedBy={openDateCheckedBy}
-        onClose={() => setOpenDate(null)}
+        onClose={() => {
+          setOpenDate(null);
+          loadMessageDates(); // เผื่อเพิ่งส่งข้อความแรกของวันนี้ไปตอนเปิดหน้าต่างอยู่ ให้สัญลักษณ์ขึ้นทันทีไม่ต้องรอ poll
+        }}
       />
     </div>
   );
