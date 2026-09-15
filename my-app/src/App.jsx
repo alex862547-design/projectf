@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Calendar, Trophy, Newspaper, CheckCircle2, Clock, Briefcase, CalendarDays, Eye } from "lucide-react";
+import { Users, Calendar, Trophy, Newspaper, CheckCircle2, Clock, Briefcase, CalendarDays, Eye, ClipboardList } from "lucide-react";
 
 import Login from "./components/Login";
 import GuestView from "./components/guest/GuestView";
@@ -19,6 +19,7 @@ import AdminStudents from "./components/admin/AdminStudents";
 import AdminMatches from "./components/admin/AdminMatches";
 import AdminNews from "./components/admin/AdminNews";
 import AdminEventDays from "./components/admin/AdminEventDays";
+import AdminCheckins from "./components/admin/AdminCheckins";
 
 import { api, getAuthToken, setAuthToken } from "./api";
 import { setTeams as setTeamsCache } from "./utils/helpers";
@@ -288,6 +289,7 @@ export default function App() {
     const tabs = [
       { key: "students", label: "จัดการนักศึกษา", icon: Users },
       { key: "matches", label: "ตารางแข่งขัน/คะแนน", icon: Calendar },
+      { key: "checkins", label: "จัดการเช็คชื่อ", icon: ClipboardList },
       { key: "news", label: "ข่าวสาร", icon: Newspaper },
       { key: "eventdays", label: "วันจัดกิจกรรม", icon: CalendarDays },
     ];
@@ -325,6 +327,7 @@ export default function App() {
           />
           {adminTab === "students" && <AdminStudents students={students} setStudents={setStudents} roles={roles} setRoles={setRoles} studentYears={studentYears} setStudentYears={setStudentYears} teams={teams} setTeams={setTeams} />}
           {adminTab === "matches" && <AdminMatches matches={matches} setMatches={setMatches} teams={teams} />}
+          {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} />}
           {adminTab === "news" && <AdminNews news={news} setNews={setNews} />}
           {adminTab === "eventdays" && <AdminEventDays eventDays={eventDays} setEventDays={setEventDays} />}
         </Shell>

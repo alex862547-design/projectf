@@ -71,6 +71,7 @@ export const api = {
 
   getCheckins: () => request("/checkins"),
   createCheckin: (data) => request("/checkins", { method: "POST", body: JSON.stringify(data) }),
+  updateCheckin: (id, data) => request(`/checkins/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteCheckin: (id) => request(`/checkins/${id}`, { method: "DELETE" }),
 
   getAttendanceMessages: (studentId, date) =>
