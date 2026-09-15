@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Briefcase, Search } from "lucide-react";
+import { Briefcase, Search, Lock } from "lucide-react";
 import Card from "../common/Card";
 import { api } from "../../api";
 
@@ -10,15 +10,33 @@ const roomNumberOf = (year) => {
   return Number.isNaN(n) ? 0 : n;
 };
 
-// แท็บ "จัดการตำแหน่ง" — โชว์เฉพาะกับนักศึกษาที่ได้รับสิทธิ์ can_checkin เท่านั้น (เจ้าหน้าที่ทีม)
-// ให้ปรับตำแหน่ง/กีฬาของเพื่อนในทีมสีเดียวกันได้เอง (แทนที่ต้องให้แอดมินทำให้) มี guard เรื่องโควตา
-// (นักกีฬาแต่ละชนิด ≤10 คน/สี, หัวหน้าสี ≤1 คน/สี) เหมือนฝั่งแอดมิน — ตรวจซ้ำที่ server ด้วยเสมอ
+// แท็บ "จัดการตำแหน่ง" — เดิมเปิดให้นักศึกษาที่ได้รับสิทธิ์ can_checkin ทุกตำแหน่งใช้ได้ ตอนนี้จำกัดให้เหลือ
+// เฉพาะ "หัวหน้าสี" เท่านั้น (เจ้าหน้าที่ทีม/นักกีฬาตำแหน่งอื่นๆ ที่มี can_checkin ไม่มีสิทธิ์นี้แล้ว) ให้ปรับ
+// ตำแหน่ง/กีฬาของเพื่อนในทีมสีเดียวกันได้เอง (แทนที่ต้องให้แอดมินทำให้) มี guard เรื่องโควตา
+// (นักกีฬาแต่ละชนิด ≤10 คน/สี, หัวหน้าสี ≤1 คน/สี) เหมือนฝั่งแอดมิน — ตรวจซ้ำที่ server ด้วยเสมอ (server ปฏิเสธ
+// ถ้าไม่ใช่หัวหน้าสีอยู่แล้ว เช็คซ้ำในนี้ไว้เผื่อเข้าถึงหน้านี้มาโดยตรงแบบใดแบบหนึ่ง)
 export default function TeamRoles({ student, students, setStudents, roles }) {
   const [error, setError] = useState("");
   const [selectedYearGroup, setSelectedYearGroup] = useState("all");
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const roleOptions = roles && roles.length > 0 ? roles : ["ผู้เข้าร่วมทั่วไป"];
+
+  if (student.role !== "หัวหน้าสี") {
+    return (
+      <div className="px-4 md:px-8 pb-10">
+        <Card className="p-8 text-center">
+          <Lock size={28} className="mx-auto text-slate-600" />
+          <div className="mt-3 text-sm font-semibold text-slate-600 dark:text-slate-300">
+            เฉพาะหัวหน้าสีเท่านั้นที่ปรับตำแหน่งนักศึกษาคนอื่นได้
+          </div>
+          <div className="mt-1 text-xs text-slate-400">
+            ถ้าต้องการปรับตำแหน่ง/กีฬาของนักศึกษาคนอื่น กรุณาติดต่อหัวหน้าสีหรือผู้ดูแลระบบ
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   const teammates = students.filter((s) => s.team === student.team);
 

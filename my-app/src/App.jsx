@@ -234,7 +234,10 @@ export default function App() {
       { key: "checkin", label: "เช็คชื่อกิจกรรม", icon: CheckCircle2, badge: checkerUnreadCount > 0 ? checkerUnreadCount : undefined },
       { key: "schedule", label: "ตารางแข่งขัน", icon: Calendar },
       { key: "history", label: "ประวัติของฉัน", icon: Clock, badge: unreadMessageCount > 0 ? unreadMessageCount : undefined },
-      ...(student.canCheckin ? [{ key: "roles", label: "จัดการตำแหน่ง", icon: Briefcase }] : []),
+      // เฉพาะ "หัวหน้าสี" ที่มีสิทธิ์เช็คชื่อเท่านั้นที่ปรับตำแหน่งคนอื่นได้ — เจ้าหน้าที่ทีม/นักกีฬาที่มี
+      // can_checkin ตำแหน่งอื่นๆ ไม่มีสิทธิ์นี้แล้ว (server เองก็ปฏิเสธถ้าพยายามเรียกตรงๆ อยู่แล้ว
+      // ซ่อนแท็บนี้ไปเลยเพื่อไม่ให้สับสน)
+      ...(student.canCheckin && student.role === "หัวหน้าสี" ? [{ key: "roles", label: "จัดการตำแหน่ง", icon: Briefcase }] : []),
     ];
     return (
       <>

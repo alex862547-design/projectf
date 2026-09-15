@@ -40,7 +40,9 @@ function matchForRole(role, matches) {
 }
 
 // แท็บ "เช็คชื่อกิจกรรม" — ใช้ได้เฉพาะนักศึกษาที่ได้รับสิทธิ์ can_checkin (เจ้าหน้าที่ทีม) ให้เช็คชื่อ
-// เพื่อนในทีมสีเดียวกันได้ แสดงเป็นปุ่มลัดตำแหน่ง กดตำแหน่งไหนโชว์รายชื่อของตำแหน่งนั้น (กดซ้ำ = ซ่อน)
+// เพื่อนในทีมสีเดียวกันได้ ขอบเขตแบ่งเป็น 2 ระดับ: "หัวหน้าสี" เช็คชื่อได้ทุกตำแหน่งในสีตัวเอง (มีปุ่มลัดสลับ
+// ตำแหน่งได้เหมือนเดิม) ส่วนตำแหน่งอื่นๆ ที่มี can_checkin เช็คได้แค่ "คนตำแหน่งเดียวกับตัวเอง" เท่านั้น (เช่น
+// นักกีฬาฟุตบอลเช็คได้แค่นักกีฬาฟุตบอลคนอื่น) จึงไม่ต้องมีปุ่มลัดให้เลือก เพราะมีกลุ่มเดียวให้ดูอยู่แล้ว
 // ถ้าตำแหน่งผูกกับกีฬาเฉพาะทาง (เช่น "นักกีฬาฟุตบอล") จะเช็คชื่อเข้าแมตช์ของกีฬานั้นโดยเฉพาะ
 // ถ้าเป็นตำแหน่งทั่วไป (กองเชียร์, เจ้าหน้าที่ทีม) จะเช็คชื่อแบบรายวันทั่วไป ไม่ผูกกับแมตช์ใด
 // เช็คชื่อได้ 2 ทาง: กดปุ่ม "เช็คชื่อ/เช็คขาด" เลือกจากลิสต์ตรงๆ หรือกด "สแกน QR เพื่อเช็คชื่อ" เปิดกล้อง
@@ -50,6 +52,9 @@ function matchForRole(role, matches) {
 // วันนี้หรือวันที่ผ่านมาแล้วเท่านั้น (ห้ามล่วงหน้า) ปุ่มจะรีเซ็ตตามวันที่เลือกไว้ ไม่ใช่ตามวันจริงเสมอไป
 // มีปุ่ม "กล่องข้อความ" ไว้ดูข้อความที่นักศึกษาตอบกลับมาได้แบบรวมทุกคน/ทุกวัน ไม่ต้องไล่เปิดทีละคน
 export default function UserCheckin({ student, students, matches, checkins, setCheckins, roles, checkerUnreadCount = 0 }) {
+  // หัวหน้าสีเท่านั้นที่เช็คชื่อได้ทุกตำแหน่งในสีตัวเอง — server (assertCanActOnStudent) บังคับเงื่อนไขเดียวกันนี้
+  // อยู่แล้ว ทำที่ frontend ด้วยเพื่อไม่ให้เห็น UI ของสิทธิ์ที่ทำจริงไม่ได้ (กดแล้วจะโดน 403 จาก server)
+  const isTeamLead = student.role === "หัวหน้าสี";
   const [error, setError] = useState("");
   const [pendingCheckin, setPendingCheckin] = useState(null); // { studentId, matchId, name, sport }
   const [pendingAbsent, setPendingAbsent] = useState(null); // { studentId, name, matchId }
@@ -93,7 +98,8 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     );
   }
 
-  const teammates = students.filter((s) => s.team === student.team);
+  // หัวหน้าสีเห็น/เช็คได้ทุกตำแหน่งในสีตัวเอง คนอื่นเห็น/เช็คได้แค่คนตำแหน่งเดียวกับตัวเองเท่านั้น
+  const teammates = students.filter((s) => s.team === student.team && (isTeamLead || s.role === student.role));
   const roleList = roles && roles.length > 0 ? roles : [];
 
   const todayStr = (() => {
@@ -157,7 +163,10 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     }
     const target = teammates.find((t) => t.id === scannedId);
     if (!target) {
-      setToast({ type: "error", message: "ไม่พบนักศึกษาคนนี้ในสีเดียวกับคุณ" });
+      setToast({
+        type: "error",
+        message: isTeamLead ? "ไม่พบนักศึกษาคนนี้ในสีเดียวกับคุณ" : "ไม่พบนักศึกษาคนนี้ในสีหรือตำแหน่งเดียวกับคุณ",
+      });
       return;
     }
     const sport = extractSport(target.role);
@@ -192,8 +201,9 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     }
   };
 
-  // ตำแหน่งที่กำลังดูอยู่ (ปุ่มลัด) — กดปุ่มเดิมซ้ำเพื่อซ่อนข้อมูล (toggle)
-  const activeRole = selectedRole && roleList.includes(selectedRole) ? selectedRole : null;
+  // ตำแหน่งที่กำลังดูอยู่ — หัวหน้าสีเลือกได้จากปุ่มลัด (กดปุ่มเดิมซ้ำเพื่อซ่อนข้อมูล) ส่วนตำแหน่งอื่นๆ
+  // ตายตัวเป็นตำแหน่งของตัวเองเสมอ ไม่มีปุ่มลัดให้เลือก เพราะเช็คได้แค่กลุ่มเดียวอยู่แล้ว
+  const activeRole = isTeamLead ? (selectedRole && roleList.includes(selectedRole) ? selectedRole : null) : student.role;
   const activeRoleSport = activeRole ? extractSport(activeRole) : null;
   const activeMatch = activeRole ? matchForRole(activeRole, matches) : null;
 
@@ -240,8 +250,12 @@ export default function UserCheckin({ student, students, matches, checkins, setC
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-xs text-slate-400 flex items-center gap-1.5">
-          <Users size={13} /> คุณมีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน
-          แบ่งตามตำแหน่ง/ประเภทกีฬา (ตำแหน่งใหม่ที่แอดมินเพิ่มจะขึ้นที่นี่ให้อัตโนมัติ)
+          <Users size={13} />
+          {isTeamLead ? (
+            <>คุณเป็นหัวหน้าสี มีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน แบ่งตามตำแหน่ง/ประเภทกีฬา (ตำแหน่งใหม่ที่แอดมินเพิ่มจะขึ้นที่นี่ให้อัตโนมัติ)</>
+          ) : (
+            <>คุณมีสิทธิ์เช็คชื่อเฉพาะนักศึกษาตำแหน่ง "{student.role || "ไม่ระบุตำแหน่ง"}" ในสีเดียวกัน ทั้งหมด {teammates.length} คน</>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -275,35 +289,40 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         />
       </div>
 
-      {roleList.length === 0 && (
-        <div className="text-xs text-slate-400">ยังไม่มีตำแหน่งในระบบ</div>
-      )}
+      {/* ปุ่มลัดสลับตำแหน่งมีไว้ให้หัวหน้าสีเท่านั้น (คนอื่นเช็คได้แค่ตำแหน่งเดียวกับตัวเอง ไม่มีตำแหน่งให้สลับ) */}
+      {isTeamLead && (
+        <>
+          {roleList.length === 0 && (
+            <div className="text-xs text-slate-400">ยังไม่มีตำแหน่งในระบบ</div>
+          )}
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        {roleList.map((role) => {
-          const count = teammates.filter((t) => (t.role || "") === role).length;
-          const sport = extractSport(role);
-          const isActive = activeRole === role;
-          return (
-            <button
-              key={role}
-              onClick={() => setSelectedRole((prev) => (prev === role ? null : role))}
-              className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
-                isActive
-                  ? "bg-indigo-600 border-indigo-600 text-white"
-                  : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
-              }`}
-            >
-              {sport ? (
-                <Trophy size={13} className={isActive ? "text-white" : "text-indigo-400"} />
-              ) : (
-                <Users size={13} className={isActive ? "text-white" : "text-indigo-400"} />
-              )}
-              {sport || role} ({count})
-            </button>
-          );
-        })}
-      </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {roleList.map((role) => {
+              const count = teammates.filter((t) => (t.role || "") === role).length;
+              const sport = extractSport(role);
+              const isActive = activeRole === role;
+              return (
+                <button
+                  key={role}
+                  onClick={() => setSelectedRole((prev) => (prev === role ? null : role))}
+                  className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                    isActive
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                  }`}
+                >
+                  {sport ? (
+                    <Trophy size={13} className={isActive ? "text-white" : "text-indigo-400"} />
+                  ) : (
+                    <Users size={13} className={isActive ? "text-white" : "text-indigo-400"} />
+                  )}
+                  {sport || role} ({count})
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
 
       {(activeRole || isSearching) && (
         <Card className="p-0 overflow-hidden">
