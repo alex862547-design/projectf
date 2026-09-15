@@ -8,7 +8,7 @@ import QRScannerModal from "../common/QRScannerModal";
 import MessageInboxModal from "../common/MessageInboxModal";
 import Toast from "../common/Toast";
 import { api } from "../../api";
-import { formatThaiDate, formatThaiFullDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
+import { formatThaiDate, formatThaiFullDate, formatShortTime, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
 
 function normalize(str) {
   return (str || "")
@@ -236,7 +236,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   } else if (activeRoleSport) {
     activityTitle = activeRoleSport;
     if (activeMatch) {
-      activitySubtitle = `${formatThaiDate(activeMatch.date)} · เวลา ${activeMatch.time} น. · ${activeMatch.venue}`;
+      activitySubtitle = `${formatThaiDate(activeMatch.date)} · เวลา ${formatShortTime(activeMatch.time)} น. · ${activeMatch.venue}`;
     } else {
       activityTone = "amber";
       activitySubtitle = "ยังไม่มีนัดแข่งขันสำหรับกีฬานี้ในระบบ";
@@ -472,7 +472,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                     <button
                       onClick={() => setPendingCheckin({ studentId: t.id, matchId: match?.id ?? null, name: t.name, sport: match?.sport })}
                       disabled={isPresent || isAbsent}
-                      title={match ? `${formatThaiDate(match.date)} · ${match.time} · ${match.venue}` : undefined}
+                      title={match ? `${formatThaiDate(match.date)} · ${formatShortTime(match.time)} · ${match.venue}` : undefined}
                       className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isPresent
                           ? "bg-emerald-500/15 text-emerald-400 cursor-default"
@@ -486,7 +486,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                     <button
                       onClick={() => setPendingAbsent({ studentId: t.id, name: t.name, matchId: match?.id ?? null })}
                       disabled={isPresent || isAbsent}
-                      title={match ? `${formatThaiDate(match.date)} · ${match.time} · ${match.venue}` : undefined}
+                      title={match ? `${formatThaiDate(match.date)} · ${formatShortTime(match.time)} · ${match.venue}` : undefined}
                       className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isAbsent
                           ? "bg-red-500/15 text-red-400 cursor-default"

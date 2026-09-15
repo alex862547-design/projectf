@@ -25,6 +25,13 @@ export function formatThaiDate(iso) {
   return `${d}/${m}/${y + 543}`;
 }
 
+// ตัดวินาทีออกจากเวลา "HH:MM:SS" ที่ได้จาก DB ให้เหลือแค่ "HH:MM" (ไม่มีใครสนใจวินาทีของเวลาแข่งขัน)
+export function formatShortTime(time) {
+  if (!time) return time;
+  const match = String(time).match(/^(\d{1,2}:\d{2})/);
+  return match ? match[1] : time;
+}
+
 const THAI_WEEKDAYS = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
 const THAI_MONTHS_FULL = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
