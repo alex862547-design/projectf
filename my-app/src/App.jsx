@@ -5,6 +5,7 @@ import Login from "./components/Login";
 import GuestView from "./components/guest/GuestView";
 import Shell from "./components/Shell";
 import PageHeader from "./components/common/PageHeader";
+import Badge from "./components/common/Badge";
 import Toast from "./components/common/Toast";
 import MouseSparkle from "./components/common/MouseSparkle";
 
@@ -255,6 +256,7 @@ export default function App() {
             icon={tabs.find((t) => t.key === activeTab)?.icon || tabs[0].icon}
             title={tabs.find((t) => t.key === activeTab)?.label || tabs[0].label}
             subtitle={`${student.name} · รหัสนักศึกษา ${student.id} · ${student.role}`}
+            badge={<Badge team={student.team} />}
           />
           {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} news={news} roles={roles} />}
           {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} roles={roles} checkerUnreadCount={checkerUnreadCount} />}
