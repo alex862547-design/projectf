@@ -49,10 +49,12 @@ export const api = {
 
   getRoles: () => request("/roles"),
   createRole: (name) => request("/roles", { method: "POST", body: JSON.stringify({ name }) }),
+  renameRole: (name, newName) => request(`/roles/${encodeURIComponent(name)}`, { method: "PUT", body: JSON.stringify({ newName }) }),
   deleteRole: (name) => request(`/roles/${encodeURIComponent(name)}`, { method: "DELETE" }),
 
   getStudentYears: () => request("/student-years"),
   createStudentYear: (label) => request("/student-years", { method: "POST", body: JSON.stringify({ label }) }),
+  renameStudentYear: (label, newLabel) => request(`/student-years/${encodeURIComponent(label)}`, { method: "PUT", body: JSON.stringify({ newLabel }) }),
   deleteStudentYear: (label) => request(`/student-years/${encodeURIComponent(label)}`, { method: "DELETE" }),
 
   getStudents: () => request("/students"),

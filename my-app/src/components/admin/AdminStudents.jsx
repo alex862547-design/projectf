@@ -31,6 +31,10 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
   const [error, setError] = useState("");
   const [roleError, setRoleError] = useState("");
   const [yearError, setYearError] = useState("");
+  const [editingRole, setEditingRole] = useState(null);
+  const [editRoleValue, setEditRoleValue] = useState("");
+  const [editingYear, setEditingYear] = useState(null);
+  const [editYearValue, setEditYearValue] = useState("");
   const [pendingToggle, setPendingToggle] = useState(null); // student object pending confirmation
   const [editingTeamId, setEditingTeamId] = useState(null);
   const [editTeamName, setEditTeamName] = useState("");
@@ -187,6 +191,54 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
     }
   };
 
+  // แก้ไขชื่อตำแหน่ง/ชั้นปีที่มีอยู่แล้ว (เปลี่ยนชื่อในระบบ + ปรับนักศึกษาทุกคนที่ใช้ชื่อเดิมให้เป็นชื่อใหม่พร้อมกัน
+  // ทั้งฝั่ง server และในลิสต์ students ที่ถืออยู่ในหน้านี้ ไม่ต้องรอโพลรอบถัดไปกว่าจะเห็นผล)
+  const startEditRole = (name) => {
+    setEditingRole(name);
+    setEditRoleValue(name);
+    setRoleError("");
+  };
+  const cancelEditRole = () => setEditingRole(null);
+  const saveEditRole = async (oldName) => {
+    const newName = editRoleValue.trim();
+    if (!newName || newName === oldName) {
+      setEditingRole(null);
+      return;
+    }
+    try {
+      const updatedRoles = await api.renameRole(oldName, newName);
+      setRoles(updatedRoles);
+      setStudents(students.map((s) => (s.role === oldName ? { ...s, role: newName } : s)));
+      setEditingRole(null);
+      setRoleError("");
+    } catch (err) {
+      setRoleError(err.message);
+    }
+  };
+
+  const startEditYear = (label) => {
+    setEditingYear(label);
+    setEditYearValue(label);
+    setYearError("");
+  };
+  const cancelEditYear = () => setEditingYear(null);
+  const saveEditYear = async (oldLabel) => {
+    const newLabel = editYearValue.trim();
+    if (!newLabel || newLabel === oldLabel) {
+      setEditingYear(null);
+      return;
+    }
+    try {
+      const updatedYears = await api.renameStudentYear(oldLabel, newLabel);
+      setStudentYears(updatedYears);
+      setStudents(students.map((s) => (s.year === oldLabel ? { ...s, year: newLabel } : s)));
+      setEditingYear(null);
+      setYearError("");
+    } catch (err) {
+      setYearError(err.message);
+    }
+  };
+
   const startEditTeam = (t) => {
     setEditingTeamId(t.id);
     setEditTeamName(t.name);
@@ -274,18 +326,46 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
         {expandedSections.roles && (
           <div className="mt-3">
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {roleOptions.map((r) => (
-                <span key={r} className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full pl-2.5 pr-1.5 py-1">
-                  {r}
-                  <button
-                    onClick={() => removeRole(r)}
-                    title="ลบตำแหน่งนี้"
-                    className="rounded-full p-0.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
-                  >
-                    <X size={11} />
-                  </button>
-                </span>
-              ))}
+              {roleOptions.map((r) =>
+                editingRole === r ? (
+                  <span key={r} className="flex items-center gap-1 text-xs bg-white dark:bg-slate-900 border border-indigo-400 rounded-full pl-2.5 pr-1 py-1">
+                    <input
+                      autoFocus
+                      value={editRoleValue}
+                      onChange={(e) => setEditRoleValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEditRole(r);
+                        if (e.key === "Escape") cancelEditRole();
+                      }}
+                      className="w-28 bg-transparent text-slate-900 dark:text-slate-100 focus:outline-none"
+                    />
+                    <button onClick={() => saveEditRole(r)} title="บันทึก" className="rounded-full p-0.5 text-emerald-500 hover:bg-emerald-500/10">
+                      <Check size={12} />
+                    </button>
+                    <button onClick={cancelEditRole} title="ยกเลิก" className="rounded-full p-0.5 text-slate-500 hover:bg-slate-500/10">
+                      <X size={12} />
+                    </button>
+                  </span>
+                ) : (
+                  <span key={r} className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full pl-2.5 pr-1.5 py-1">
+                    {r}
+                    <button
+                      onClick={() => startEditRole(r)}
+                      title="แก้ไขชื่อตำแหน่งนี้"
+                      className="rounded-full p-0.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10"
+                    >
+                      <Pencil size={11} />
+                    </button>
+                    <button
+                      onClick={() => removeRole(r)}
+                      title="ลบตำแหน่งนี้"
+                      className="rounded-full p-0.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                )
+              )}
             </div>
             <div className="flex gap-2">
               <input
@@ -323,18 +403,46 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
         {expandedSections.years && (
           <div className="mt-3">
             <div className="flex flex-wrap gap-1.5 mb-3">
-              {yearOptions.map((y) => (
-                <span key={y} className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full pl-2.5 pr-1.5 py-1">
-                  {y}
-                  <button
-                    onClick={() => removeYear(y)}
-                    title="ลบชั้นปีนี้"
-                    className="rounded-full p-0.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
-                  >
-                    <X size={11} />
-                  </button>
-                </span>
-              ))}
+              {yearOptions.map((y) =>
+                editingYear === y ? (
+                  <span key={y} className="flex items-center gap-1 text-xs bg-white dark:bg-slate-900 border border-sky-400 rounded-full pl-2.5 pr-1 py-1">
+                    <input
+                      autoFocus
+                      value={editYearValue}
+                      onChange={(e) => setEditYearValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") saveEditYear(y);
+                        if (e.key === "Escape") cancelEditYear();
+                      }}
+                      className="w-24 bg-transparent text-slate-900 dark:text-slate-100 focus:outline-none"
+                    />
+                    <button onClick={() => saveEditYear(y)} title="บันทึก" className="rounded-full p-0.5 text-emerald-500 hover:bg-emerald-500/10">
+                      <Check size={12} />
+                    </button>
+                    <button onClick={cancelEditYear} title="ยกเลิก" className="rounded-full p-0.5 text-slate-500 hover:bg-slate-500/10">
+                      <X size={12} />
+                    </button>
+                  </span>
+                ) : (
+                  <span key={y} className="flex items-center gap-1 text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full pl-2.5 pr-1.5 py-1">
+                    {y}
+                    <button
+                      onClick={() => startEditYear(y)}
+                      title="แก้ไขชื่อชั้นปีนี้"
+                      className="rounded-full p-0.5 text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10"
+                    >
+                      <Pencil size={11} />
+                    </button>
+                    <button
+                      onClick={() => removeYear(y)}
+                      title="ลบชั้นปีนี้"
+                      className="rounded-full p-0.5 text-slate-500 hover:text-red-400 hover:bg-red-500/10"
+                    >
+                      <X size={11} />
+                    </button>
+                  </span>
+                )
+              )}
             </div>
             <div className="flex gap-2">
               <input
