@@ -126,6 +126,21 @@ export default function App() {
     return () => clearInterval(interval);
   }, [session]);
 
+  // จำนวนข้อความที่นักศึกษาตอบกลับมาแล้วผู้เช็คชื่อยังไม่ได้เปิดอ่าน ใช้โชว์เลขแดงที่แท็บ/ปุ่ม "กล่องข้อความ"
+  // ในหน้าเช็คชื่อกิจกรรม — เฉพาะนักศึกษาที่มีสิทธิ์เช็คชื่อ (canCheckin) และล็อกอินจริงเท่านั้น
+  const [checkerUnreadCount, setCheckerUnreadCount] = useState(0);
+  const isRealCheckinStudent = session?.role === "student" && !previewMode;
+  useEffect(() => {
+    if (!isRealCheckinStudent) {
+      setCheckerUnreadCount(0);
+      return;
+    }
+    const fetchUnread = () => api.getCheckerUnreadCount().then((r) => setCheckerUnreadCount(r.count)).catch(() => {});
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 4000);
+    return () => clearInterval(interval);
+  }, [isRealCheckinStudent]);
+
   const handleLogout = () => {
     setAuthToken(null);
     setSession(null);
@@ -216,7 +231,7 @@ export default function App() {
   const renderStudentView = (student, activeTab, setActiveTab, logoutFn, previewOnClose) => {
     const tabs = [
       { key: "home", label: "หน้าหลัก", icon: Trophy },
-      { key: "checkin", label: "เช็คชื่อกิจกรรม", icon: CheckCircle2 },
+      { key: "checkin", label: "เช็คชื่อกิจกรรม", icon: CheckCircle2, badge: checkerUnreadCount > 0 ? checkerUnreadCount : undefined },
       { key: "schedule", label: "ตารางแข่งขัน", icon: Calendar },
       { key: "history", label: "ประวัติของฉัน", icon: Clock, badge: unreadMessageCount > 0 ? unreadMessageCount : undefined },
       ...(student.canCheckin ? [{ key: "roles", label: "จัดการตำแหน่ง", icon: Briefcase }] : []),
@@ -239,7 +254,7 @@ export default function App() {
             subtitle={`${student.name} · รหัสนักศึกษา ${student.id} · ${student.role}`}
           />
           {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} news={news} roles={roles} />}
-          {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} roles={roles} />}
+          {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} roles={roles} checkerUnreadCount={checkerUnreadCount} />}
           {activeTab === "schedule" && <MatchSchedule matches={matches} students={students} />}
           {activeTab === "history" && <UserHistory student={student} matches={matches} checkins={checkins} eventDays={eventDays} />}
           {activeTab === "roles" && student.canCheckin && (

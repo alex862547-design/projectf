@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search, CalendarDays } from "lucide-react";
+import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search, CalendarDays, Inbox } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AbsentNoteDialog from "../common/AbsentNoteDialog";
 import AttendanceThreadModal from "../common/AttendanceThreadModal";
 import QRScannerModal from "../common/QRScannerModal";
+import MessageInboxModal from "../common/MessageInboxModal";
 import Toast from "../common/Toast";
 import { api } from "../../api";
-import { formatThaiDate, formatThaiFullDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
+import { formatThaiDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
 
 function normalize(str) {
   return (str || "")
@@ -25,7 +26,9 @@ function extractSport(role) {
   return stripped || null;
 }
 
-// หานัดแข่งขันที่ตรงกับตำแหน่งนี้ (ใช้เฉพาะตำแหน่งที่เป็นนักกีฬาเฉพาะทาง)
+// หานัดแข่งขันที่ตรงกับตำแหน่งนี้ (ใช้เฉพาะตำแหน่งที่เป็นนักกีฬาเฉพาะทาง) — จับคู่แค่ชื่อกีฬา ไม่กรองด้วยวันที่ของนัด
+// เพราะ "วันที่" ของ checkin (ที่เลือกเช็คชื่อย้อนหลังได้) เป็นแค่วันที่บันทึกว่าเช็คชื่อวันไหน ไม่ใช่ว่าต้องตรงกับ
+// วันที่ตั้งไว้ของนัดแข่งขันเป๊ะๆ (นัดแข่งหนึ่งอาจถูกเลื่อน/เช็คชื่อล่วงหน้า-ย้อนหลังได้อยู่แล้วในทางปฏิบัติ)
 function matchForRole(role, matches) {
   const roleSport = extractSport(role);
   if (!roleSport) return null;
@@ -38,12 +41,15 @@ function matchForRole(role, matches) {
 
 // แท็บ "เช็คชื่อกิจกรรม" — ใช้ได้เฉพาะนักศึกษาที่ได้รับสิทธิ์ can_checkin (เจ้าหน้าที่ทีม) ให้เช็คชื่อ
 // เพื่อนในทีมสีเดียวกันได้ แสดงเป็นปุ่มลัดตำแหน่ง กดตำแหน่งไหนโชว์รายชื่อของตำแหน่งนั้น (กดซ้ำ = ซ่อน)
-// ถ้าตำแหน่งผูกกับกีฬาเฉพาะทาง (เช่น "นักกีฬาฟุตบอล") จะเช็คชื่อเข้าแมตช์วันนี้ของกีฬานั้นโดยเฉพาะ
+// ถ้าตำแหน่งผูกกับกีฬาเฉพาะทาง (เช่น "นักกีฬาฟุตบอล") จะเช็คชื่อเข้าแมตช์ของกีฬานั้นโดยเฉพาะ
 // ถ้าเป็นตำแหน่งทั่วไป (กองเชียร์, เจ้าหน้าที่ทีม) จะเช็คชื่อแบบรายวันทั่วไป ไม่ผูกกับแมตช์ใด
 // เช็คชื่อได้ 2 ทาง: กดปุ่ม "เช็คชื่อ/เช็คขาด" เลือกจากลิสต์ตรงๆ หรือกด "สแกน QR เพื่อเช็คชื่อ" เปิดกล้อง
 // สแกน QR ประจำตัวของเพื่อน (ดู QRScannerModal.jsx) ซึ่งจะหาคน+คำนวณแมตช์ให้เองแล้วเปิดกล่องยืนยันเดียวกัน
 // ถ้าเช็คผิดคน/ผิดสถานะ กดปุ่ม "ยกเลิก" ที่โผล่มาหลังเช็คแล้วได้ เพื่อลบทิ้งแล้วเช็คใหม่ให้ถูกต้อง
-export default function UserCheckin({ student, students, matches, checkins, setCheckins, roles }) {
+// เลือก "วันที่" ที่จะเช็คชื่อให้ได้ (ค่าเริ่มต้น = วันนี้) เพื่อเช็คชื่อย้อนหลังกรณีลืมเช็คในวันจริง — เลือกได้แค่
+// วันนี้หรือวันที่ผ่านมาแล้วเท่านั้น (ห้ามล่วงหน้า) ปุ่มจะรีเซ็ตตามวันที่เลือกไว้ ไม่ใช่ตามวันจริงเสมอไป
+// มีปุ่ม "กล่องข้อความ" ไว้ดูข้อความที่นักศึกษาตอบกลับมาได้แบบรวมทุกคน/ทุกวัน ไม่ต้องไล่เปิดทีละคน
+export default function UserCheckin({ student, students, matches, checkins, setCheckins, roles, checkerUnreadCount = 0 }) {
   const [error, setError] = useState("");
   const [pendingCheckin, setPendingCheckin] = useState(null); // { studentId, matchId, name, sport }
   const [pendingAbsent, setPendingAbsent] = useState(null); // { studentId, name, matchId }
@@ -52,7 +58,16 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const [toast, setToast] = useState(null); // { type: "success" | "error", message }
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่งที่กำลังเปิดดูรายชื่ออยู่ (ปุ่มลัด)
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [inboxOpen, setInboxOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // วันที่กำลังเช็คชื่อให้อยู่ — ค่าเริ่มต้นเป็นวันนี้ตามเวลาเครื่อง เปลี่ยนได้เพื่อเช็คชื่อย้อนหลัง
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  });
 
   // หาว่าใครเป็นคนเช็คชื่อ/เช็คขาดให้ในวันที่เปิดหน้าต่างข้อความอยู่ (โชว์ในหัวหน้าต่าง AttendanceThreadModal)
   // อยู่ก่อน early return ด้านล่างเสมอ เพื่อให้ลำดับ hook คงที่ทุกครั้งที่ render (ตามกฎของ React hooks)
@@ -88,14 +103,18 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     const day = String(d.getDate()).padStart(2, "0");
     return `${y}-${m}-${day}`;
   })();
+  const isRetroactive = selectedDate !== todayStr;
+  // ใช้ต่อท้ายชื่อวัน/ข้อความแจ้งเตือนต่างๆ ให้ชัดว่ากำลังทำรายการของวันไหน (เฉพาะตอนไม่ใช่วันนี้ จะไม่พูดซ้ำว่า "วันนี้")
+  const dateLabel = isRetroactive ? `วันที่ ${formatThaiDate(selectedDate)}` : "วันนี้";
 
-  // เช็คชื่อทั่วไป (ตำแหน่งที่ไม่ผูกกีฬา) = checkin ที่ matchId เป็นค่าว่าง "ของวันนี้" โดยเฉพาะ
-  const todayGeneralCheckin = (studentId) =>
-    checkins.find((c) => c.studentId === studentId && c.matchId == null && c.date === todayStr);
+  // เช็คชื่อทั่วไป (ตำแหน่งที่ไม่ผูกกีฬา) = checkin ที่ matchId เป็นค่าว่าง "ของวันที่เลือกไว้" โดยเฉพาะ
+  const dateGeneralCheckin = (studentId) =>
+    checkins.find((c) => c.studentId === studentId && c.matchId == null && c.date === selectedDate);
 
-  // สถานะเช็คชื่อ/เช็คขาด ของนัดแข่งขันหนึ่งๆ (ใช้กับตำแหน่งนักกีฬาเฉพาะทาง) — นับเฉพาะของ "วันนี้" เพื่อให้ปุ่มรีเซ็ตทุกวันใหม่
+  // สถานะเช็คชื่อ/เช็คขาด ของนัดแข่งขันหนึ่งๆ (ใช้กับตำแหน่งนักกีฬาเฉพาะทาง) — นับเฉพาะของ "วันที่เลือกไว้"
+  // เพื่อให้ปุ่มรีเซ็ตใหม่เมื่อสลับไปเช็คชื่อวันอื่น (ไม่ใช่รีเซ็ตตามวันจริงเสมอไป เผื่อเช็คย้อนหลัง)
   const matchRecord = (studentId, matchId) =>
-    checkins.find((c) => c.studentId === studentId && c.matchId === matchId && c.date === todayStr);
+    checkins.find((c) => c.studentId === studentId && c.matchId === matchId && c.date === selectedDate);
 
   const doCheckin = async (studentId, matchId, name, status = "present") => {
     try {
@@ -103,11 +122,12 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         studentId,
         matchId: matchId ?? null,
         status,
+        date: selectedDate,
         time: new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }),
       });
       setCheckins([...checkins, created]);
       setError("");
-      setToast({ type: "success", message: `เช็คชื่อ "${name}" สำเร็จแล้ว` });
+      setToast({ type: "success", message: `เช็คชื่อ "${name}" สำเร็จแล้ว${isRetroactive ? ` (${dateLabel})` : ""}` });
     } catch (err) {
       setError(err.message);
       setToast({ type: "error", message: "เช็คชื่อไม่สำเร็จ: " + err.message });
@@ -127,6 +147,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
 
   // ประมวลผลข้อความที่ได้จากการสแกน QR — หาตัวนักศึกษาเจ้าของ QR ในสีเดียวกัน คำนวณ matchId ให้เองถ้าเป็น
   // ตำแหน่งนักกีฬาเฉพาะทาง (ไม่ต้องให้ผู้สแกนเลือกแท็บตำแหน่งก่อนสแกน) แล้วเปิดกล่องยืนยันเดียวกับตอนกดเช็คชื่อด้วยมือ
+  // เช็คสถานะเดิมเทียบกับ "วันที่เลือกไว้" ด้วย เผื่อกำลังสแกนเพื่อเช็คชื่อย้อนหลัง ไม่ใช่วันนี้เสมอไป
   const handleScan = (text) => {
     setScannerOpen(false);
     const scannedId = parseCheckinQRValue(text);
@@ -145,11 +166,11 @@ export default function UserCheckin({ student, students, matches, checkins, setC
       setToast({ type: "error", message: `ยังไม่มีนัดแข่งขันสำหรับตำแหน่งของ "${target.name}"` });
       return;
     }
-    const existing = match ? matchRecord(target.id, match.id) : todayGeneralCheckin(target.id);
+    const existing = match ? matchRecord(target.id, match.id) : dateGeneralCheckin(target.id);
     if (existing) {
       setToast({
         type: "error",
-        message: `"${target.name}" ${existing.status === "absent" ? "เช็คขาดไปแล้ว" : "เช็คชื่อไปแล้ว"} วันนี้`,
+        message: `"${target.name}" ${existing.status === "absent" ? "เช็คขาดไปแล้ว" : "เช็คชื่อไปแล้ว"}${isRetroactive ? ` ${dateLabel}` : "วันนี้"}`,
       });
       return;
     }
@@ -158,13 +179,13 @@ export default function UserCheckin({ student, students, matches, checkins, setC
 
   const doAbsent = async (studentId, name, message, matchId = null) => {
     try {
-      const created = await api.createCheckin({ studentId, matchId: matchId ?? null, status: "absent" });
+      const created = await api.createCheckin({ studentId, matchId: matchId ?? null, status: "absent", date: selectedDate });
       setCheckins([...checkins, created]);
-      await api.sendAttendanceMessage({ studentId, date: todayStr, message });
+      await api.sendAttendanceMessage({ studentId, date: selectedDate, message });
       setError("");
-      setToast({ type: "success", message: `บันทึกเช็คขาดและส่งข้อความถึง "${name}" สำเร็จแล้ว` });
+      setToast({ type: "success", message: `บันทึกเช็คขาดและส่งข้อความถึง "${name}" สำเร็จแล้ว${isRetroactive ? ` (${dateLabel})` : ""}` });
       // เปิดหน้าต่างข้อความให้เห็นเลยว่าข้อความที่พิมพ์ไปถูกส่งจริง และรอดูคำตอบกลับได้
-      setThreadFor({ studentId, date: todayStr });
+      setThreadFor({ studentId, date: selectedDate });
     } catch (err) {
       setError(err.message);
       setToast({ type: "error", message: "บันทึกเช็คขาดไม่สำเร็จ: " + err.message });
@@ -189,21 +210,58 @@ export default function UserCheckin({ student, students, matches, checkins, setC
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-5">
-      {/* โชว์วันที่ "วันนี้" ไว้ให้เห็นชัดๆ เพราะการเช็คชื่อทุกอย่างในหน้านี้ผูกกับวันนี้เท่านั้น (ปุ่มรีเซ็ตทุกวันใหม่) */}
-      <div className="text-xs font-semibold text-indigo-400 flex items-center gap-1.5">
-        <CalendarDays size={13} /> {formatThaiFullDate()}
+      {/* เลือกวันที่จะเช็คชื่อให้ได้ (ค่าเริ่มต้น = วันนี้) เพื่อเช็คชื่อย้อนหลังได้กรณีลืมเช็คในวันจริง
+          เลือกได้แค่วันนี้/วันที่ผ่านมาแล้ว (max = วันนี้) กันเผลอเช็คชื่อล่วงหน้า */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="text-xs font-semibold text-indigo-400 flex items-center gap-1.5 shrink-0">
+          <CalendarDays size={13} /> เช็คชื่อสำหรับวันที่
+        </div>
+        <input
+          type="date"
+          value={selectedDate}
+          max={todayStr}
+          onChange={(e) => setSelectedDate(e.target.value || todayStr)}
+          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
+        {isRetroactive && (
+          <>
+            <span className="text-[11px] font-semibold text-amber-500 bg-amber-500/10 rounded-full px-2.5 py-1">
+              กำลังเช็คชื่อย้อนหลัง
+            </span>
+            <button
+              onClick={() => setSelectedDate(todayStr)}
+              className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 rounded-full px-2.5 py-1"
+            >
+              กลับไปวันนี้
+            </button>
+          </>
+        )}
       </div>
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="text-xs text-slate-400 flex items-center gap-1.5">
           <Users size={13} /> คุณมีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน
           แบ่งตามตำแหน่ง/ประเภทกีฬา (ตำแหน่งใหม่ที่แอดมินเพิ่มจะขึ้นที่นี่ให้อัตโนมัติ)
         </div>
-        <button
-          onClick={() => setScannerOpen(true)}
-          className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
-        >
-          <QrCode size={14} /> สแกน QR เพื่อเช็คชื่อ
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setInboxOpen(true)}
+            className="relative flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+          >
+            <Inbox size={14} /> กล่องข้อความ
+            {checkerUnreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+                {checkerUnreadCount > 99 ? "99+" : checkerUnreadCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setScannerOpen(true)}
+            className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
+          >
+            <QrCode size={14} /> สแกน QR เพื่อเช็คชื่อ
+          </button>
+        </div>
       </div>
       {error && <div className="text-xs text-red-400">{error}</div>}
 
@@ -282,7 +340,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                 );
               }
 
-              const record = match ? matchRecord(t.id, match.id) : todayGeneralCheckin(t.id);
+              const record = match ? matchRecord(t.id, match.id) : dateGeneralCheckin(t.id);
               const isPresent = record ? (record.status || "present") === "present" : false;
               const isAbsent = record?.status === "absent";
               const hasRecord = !!record;
@@ -327,8 +385,8 @@ export default function UserCheckin({ student, students, matches, checkins, setC
                     </button>
                     {hasRecord && (
                       <button
-                        onClick={() => setThreadFor({ studentId: t.id, date: todayStr })}
-                        title="ดูข้อความของวันนี้"
+                        onClick={() => setThreadFor({ studentId: t.id, date: selectedDate })}
+                        title={`ดูข้อความของ${dateLabel}`}
                         className="flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-semibold text-slate-400 border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
                       >
                         <MessageCircle size={14} className="shrink-0" /> ดูข้อความ
@@ -355,7 +413,9 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         title="ยืนยันการเช็คชื่อ"
         message={
           pendingCheckin &&
-          `เช็คชื่อให้ "${pendingCheckin.name}"${pendingCheckin.sport ? ` เข้าร่วม ${pendingCheckin.sport}` : ""} ใช่หรือไม่?`
+          `เช็คชื่อให้ "${pendingCheckin.name}"${pendingCheckin.sport ? ` เข้าร่วม ${pendingCheckin.sport}` : ""}${
+            isRetroactive ? ` สำหรับ${dateLabel}` : ""
+          } ใช่หรือไม่?`
         }
         confirmLabel="ยืนยันเช็คชื่อ"
         onCancel={() => setPendingCheckin(null)}
@@ -401,6 +461,15 @@ export default function UserCheckin({ student, students, matches, checkins, setC
       />
 
       <QRScannerModal open={scannerOpen} onScan={handleScan} onClose={() => setScannerOpen(false)} />
+
+      <MessageInboxModal
+        open={inboxOpen}
+        onOpenThread={(studentId, date) => {
+          setInboxOpen(false);
+          setThreadFor({ studentId, date });
+        }}
+        onClose={() => setInboxOpen(false)}
+      />
 
       <Toast toast={toast} onClose={() => setToast(null)} />
     </div>

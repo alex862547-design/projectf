@@ -78,6 +78,8 @@ export const api = {
   sendAttendanceMessage: (data) =>
     request("/attendance-messages", { method: "POST", body: JSON.stringify(data) }),
   getUnreadMessageCount: () => request("/attendance-messages/unread-count"),
+  getMessageThreads: () => request("/attendance-messages/threads"),
+  getCheckerUnreadCount: () => request("/attendance-messages/checker-unread-count"),
 
   getEventDays: () => request("/event-days"),
   createEventDay: (date, label) => request("/event-days", { method: "POST", body: JSON.stringify({ date, label }) }),
