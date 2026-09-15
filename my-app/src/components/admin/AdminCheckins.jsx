@@ -6,6 +6,7 @@ import {
 import Card from "../common/Card";
 import Badge from "../common/Badge";
 import ConfirmDialog from "../common/ConfirmDialog";
+import StudentDetailModal from "../common/StudentDetailModal";
 import { api } from "../../api";
 import { formatThaiFullDate, formatShortTime, sortStudentsByYear, extractSportFromRole as extractSport, matchForRole } from "../../utils/helpers";
 
@@ -34,6 +35,7 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
   // ปุ่มลัดเลือกตำแหน่ง/กิจกรรมที่จะดู — กดปุ่มเดิมซ้ำเพื่อซ่อน ไม่โหลด/แสดงรายชื่อทุกตำแหน่งพร้อมกันทีเดียว
   // (บางตำแหน่งเช่นกองเชียร์มีนักศึกษาเป็นร้อยคน แสดงทุกกลุ่มพร้อมกันจะยาวและอืดเกินไป)
   const [selectedGroupKey, setSelectedGroupKey] = useState(null);
+  const [viewingStudent, setViewingStudent] = useState(null); // กดชื่อนักศึกษาเพื่อดูประวัติ/สังกัด/ตำแหน่งแบบย่อ
 
   const [addOpen, setAddOpen] = useState(false);
   const [addStudentQuery, setAddStudentQuery] = useState("");
@@ -454,13 +456,19 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
               const isEditing = checkin && editingId === checkin.id;
               return (
                 <div key={student.id} className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-200 dark:border-slate-800/60 last:border-0 flex-wrap">
-                  <div className="flex items-center gap-2 min-w-0">
+                  <button
+                    onClick={() => setViewingStudent(student)}
+                    className="flex items-center gap-2 min-w-0 text-left hover:opacity-80"
+                    title="กดเพื่อดูข้อมูลนักศึกษา"
+                  >
                     <div className="min-w-0">
-                      <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate">{student.name}</div>
+                      <div className="text-sm font-medium text-slate-800 dark:text-slate-200 truncate underline decoration-dotted decoration-slate-400">
+                        {student.name}
+                      </div>
                       <div className="text-xs text-slate-400">รหัส {student.id} · {student.year || "ไม่ระบุชั้นปี"}</div>
                     </div>
                     <Badge team={student.team} />
-                  </div>
+                  </button>
 
                   {!checkin && (
                     <div className="flex items-center gap-2 flex-wrap">
@@ -552,6 +560,13 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
         danger
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => remove(pendingDelete.id)}
+      />
+
+      <StudentDetailModal
+        student={viewingStudent}
+        checkins={checkins}
+        matches={matches}
+        onClose={() => setViewingStudent(null)}
       />
     </div>
   );
