@@ -219,6 +219,39 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     ? sortStudentsByYear(teammates.filter((t) => (t.role || "") === activeRole))
     : [];
 
+  // สรุปว่า "กำลังเช็คชื่อกิจกรรมไหนอยู่" ให้เห็นชัดๆ แยกจากประโยคบอกสิทธิ์ด้านล่าง (คนละเรื่องกัน) — ตอนค้นหา
+  // จะข้ามการเลือกตำแหน่งไปเลย เลยไม่มีกิจกรรมเดียวให้บอกตรงๆ ใช้ข้อความสรุปรวมแทน
+  let ActivityIcon = Trophy;
+  let activityTone = "indigo";
+  let activityTitle = "";
+  let activitySubtitle = "";
+  if (isSearching) {
+    ActivityIcon = Search;
+    activityTitle = "กำลังค้นหาทั่วทั้งสี";
+    activitySubtitle = `ข้ามการเลือกตำแหน่ง ค้นหาได้ครบทุกคนที่มีสิทธิ์เช็คชื่อ ${teammates.length} คน`;
+  } else if (!activeRole) {
+    activityTone = "slate";
+    activityTitle = "ยังไม่ได้เลือกกิจกรรม";
+    activitySubtitle = "เลือกตำแหน่ง/กีฬาด้านล่างเพื่อเริ่มเช็คชื่อ";
+  } else if (activeRoleSport) {
+    activityTitle = activeRoleSport;
+    if (activeMatch) {
+      activitySubtitle = `${formatThaiDate(activeMatch.date)} · เวลา ${activeMatch.time} น. · ${activeMatch.venue}`;
+    } else {
+      activityTone = "amber";
+      activitySubtitle = "ยังไม่มีนัดแข่งขันสำหรับกีฬานี้ในระบบ";
+    }
+  } else {
+    ActivityIcon = Users;
+    activityTitle = activeRole;
+    activitySubtitle = "เช็คชื่อทั่วไป ไม่ผูกกับนัดแข่งขัน เช็คได้ตลอดทั้งวัน";
+  }
+  const activityToneClasses = {
+    indigo: "bg-indigo-500/15 text-indigo-500 dark:text-indigo-400",
+    amber: "bg-amber-500/15 text-amber-500",
+    slate: "bg-slate-500/15 text-slate-400",
+  }[activityTone];
+
   // เปิดปฏิทินเลือกวันของ input[type=date] ที่ซ่อนไว้ ให้กดได้จากทั้งการ์ด ไม่ใช่แค่ไอคอนปฏิทินของเบราว์เซอร์
   // (showPicker ใช้ได้กับ Chrome/Edge/Android ส่วนเบราว์เซอร์ที่ไม่รองรับ เช่น Safari เก่า จะ fallback ไป focus แทน)
   const openDatePicker = () => {
@@ -291,6 +324,23 @@ export default function UserCheckin({ student, students, matches, checkins, setC
             </button>
           </div>
         )}
+      </div>
+
+      {/* บอกชัดๆ ว่ากำลังเช็คชื่อกิจกรรม/กีฬาไหนอยู่ (ตัวใหญ่ อ่านง่าย) แยกจากประโยคบอกสิทธิ์ด้านล่างซึ่งเป็นคนละเรื่อง
+          (สิทธิ์ = เช็คได้กับใครบ้าง, การ์ดนี้ = ตอนนี้กำลังเช็คกิจกรรมอะไรอยู่) อัพเดทอัตโนมัติตามตำแหน่ง/การค้นหาที่เลือก */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${activityToneClasses}`}>
+            <ActivityIcon size={22} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-semibold text-slate-400">กำลังเช็คชื่อกิจกรรม</div>
+            <div className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
+              {activityTitle}
+            </div>
+            <div className="text-xs text-slate-400 mt-0.5 truncate">{activitySubtitle}</div>
+          </div>
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 flex-wrap">
