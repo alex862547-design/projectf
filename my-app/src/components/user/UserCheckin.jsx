@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from "react";
-import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search, CalendarDays, Inbox } from "lucide-react";
+import React, { useMemo, useRef, useState } from "react";
+import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search, CalendarDays, ChevronDown, Inbox } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AbsentNoteDialog from "../common/AbsentNoteDialog";
@@ -8,7 +8,7 @@ import QRScannerModal from "../common/QRScannerModal";
 import MessageInboxModal from "../common/MessageInboxModal";
 import Toast from "../common/Toast";
 import { api } from "../../api";
-import { formatThaiDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
+import { formatThaiDate, formatThaiFullDate, sortStudentsByYear, parseCheckinQRValue } from "../../utils/helpers";
 
 function normalize(str) {
   return (str || "")
@@ -65,6 +65,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const [scannerOpen, setScannerOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const dateInputRef = useRef(null); // ใช้เปิดปฏิทินเนทีฟผ่าน showPicker() ตอนกดที่การ์ดเลือกวันที่
   // วันที่กำลังเช็คชื่อให้อยู่ — ค่าเริ่มต้นเป็นวันนี้ตามเวลาเครื่อง เปลี่ยนได้เพื่อเช็คชื่อย้อนหลัง
   const [selectedDate, setSelectedDate] = useState(() => {
     const d = new Date();
@@ -218,33 +219,77 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     ? sortStudentsByYear(teammates.filter((t) => (t.role || "") === activeRole))
     : [];
 
+  // เปิดปฏิทินเลือกวันของ input[type=date] ที่ซ่อนไว้ ให้กดได้จากทั้งการ์ด ไม่ใช่แค่ไอคอนปฏิทินของเบราว์เซอร์
+  // (showPicker ใช้ได้กับ Chrome/Edge/Android ส่วนเบราว์เซอร์ที่ไม่รองรับ เช่น Safari เก่า จะ fallback ไป focus แทน)
+  const openDatePicker = () => {
+    const el = dateInputRef.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") {
+      try {
+        el.showPicker();
+        return;
+      } catch {
+        // เบราว์เซอร์บล็อก showPicker (เช่นไม่ได้มาจาก user gesture โดยตรง) ให้ fallback ไป focus แทน
+      }
+    }
+    el.focus();
+  };
+
   return (
     <div className="px-4 md:px-8 pb-10 space-y-5">
       {/* เลือกวันที่จะเช็คชื่อให้ได้ (ค่าเริ่มต้น = วันนี้) เพื่อเช็คชื่อย้อนหลังได้กรณีลืมเช็คในวันจริง
-          เลือกได้แค่วันนี้/วันที่ผ่านมาแล้ว (max = วันนี้) กันเผลอเช็คชื่อล่วงหน้า */}
-      <div className="flex items-center gap-2 flex-wrap">
-        <div className="text-xs font-semibold text-indigo-400 flex items-center gap-1.5 shrink-0">
-          <CalendarDays size={13} /> เช็คชื่อสำหรับวันที่
+          เลือกได้แค่วันนี้/วันที่ผ่านมาแล้ว (max = วันนี้) กันเผลอเช็คชื่อล่วงหน้า
+          ตัวการ์ดทั้งใบกดเปิดปฏิทินได้เลย ไม่ต้องเล็งกดแค่ไอคอนปฏิทิน ส่วน input[type=date] จริงถูกซ่อนไว้
+          (opacity 0 แต่ยังอยู่ใน DOM) เพื่อให้ยังใช้ปฏิทินเนทีฟของเบราว์เซอร์/มือถือได้ตามปกติ */}
+      <div className="relative rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm overflow-hidden">
+        <div
+          onClick={openDatePicker}
+          className="w-full flex items-center gap-3 px-4 py-3.5 cursor-pointer select-none hover:bg-slate-50 dark:hover:bg-slate-800/60 transition"
+        >
+          <div
+            className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+              isRetroactive
+                ? "bg-amber-500/15 text-amber-500"
+                : "bg-indigo-500/15 text-indigo-500 dark:text-indigo-400"
+            }`}
+          >
+            <CalendarDays size={22} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="text-[11px] font-semibold text-slate-400">เช็คชื่อสำหรับวันที่</div>
+            <div className="text-base md:text-lg font-bold text-slate-900 dark:text-slate-100 truncate">
+              {formatThaiFullDate(new Date(selectedDate + "T00:00:00"))}
+            </div>
+          </div>
+          {isRetroactive && (
+            <span className="shrink-0 text-[11px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/10 rounded-full px-2.5 py-1">
+              ย้อนหลัง
+            </span>
+          )}
+          <ChevronDown size={16} className="text-slate-400 shrink-0" />
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={selectedDate}
+            max={todayStr}
+            onChange={(e) => setSelectedDate(e.target.value || todayStr)}
+            tabIndex={-1}
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+          />
         </div>
-        <input
-          type="date"
-          value={selectedDate}
-          max={todayStr}
-          onChange={(e) => setSelectedDate(e.target.value || todayStr)}
-          className="rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
         {isRetroactive && (
-          <>
-            <span className="text-[11px] font-semibold text-amber-500 bg-amber-500/10 rounded-full px-2.5 py-1">
-              กำลังเช็คชื่อย้อนหลัง
+          <div className="flex items-center justify-between gap-2 px-4 py-2 border-t border-amber-500/20 bg-amber-500/5">
+            <span className="text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+              กำลังเช็คชื่อย้อนหลัง ข้อมูลจะถูกบันทึกลงวันที่นี้แทนวันนี้
             </span>
             <button
               onClick={() => setSelectedDate(todayStr)}
-              className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 rounded-full px-2.5 py-1"
+              className="shrink-0 flex items-center gap-1 text-[11px] font-semibold text-indigo-500 dark:text-indigo-400 hover:text-indigo-400 dark:hover:text-indigo-300"
             >
-              กลับไปวันนี้
+              <RotateCcw size={11} /> กลับไปวันนี้
             </button>
-          </>
+          </div>
         )}
       </div>
 
