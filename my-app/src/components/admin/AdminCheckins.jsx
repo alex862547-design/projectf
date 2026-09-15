@@ -31,6 +31,10 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
   const [editTime, setEditTime] = useState("");
   const [editStatus, setEditStatus] = useState("present");
 
+  // ปุ่มลัดเลือกตำแหน่ง/กิจกรรมที่จะดู — กดปุ่มเดิมซ้ำเพื่อซ่อน ไม่โหลด/แสดงรายชื่อทุกตำแหน่งพร้อมกันทีเดียว
+  // (บางตำแหน่งเช่นกองเชียร์มีนักศึกษาเป็นร้อยคน แสดงทุกกลุ่มพร้อมกันจะยาวและอืดเกินไป)
+  const [selectedGroupKey, setSelectedGroupKey] = useState(null);
+
   const [addOpen, setAddOpen] = useState(false);
   const [addStudentQuery, setAddStudentQuery] = useState("");
   const [addStudent, setAddStudent] = useState(null);
@@ -390,13 +394,43 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
 
       {error && <div className="text-xs text-red-400">{error}</div>}
 
-      {visibleGroups.length === 0 && (
+      {/* ปุ่มลัดของแต่ละตำแหน่ง/กิจกรรม — ตอนกำลังค้นหาจะซ่อนแถบนี้ไปเลย เพราะค้นหาจะมองข้ามตำแหน่งที่เลือกไว้
+          แล้วค้นทั่วทุกตำแหน่งให้แทน (เหมือนหน้าเช็คชื่อของนักศึกษา) */}
+      {!searchQ && (
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {groups.map((g) => {
+            const Icon = g.icon;
+            const checkedCount = g.rows.filter((r) => r.checkin).length;
+            const isActive = selectedGroupKey === g.key;
+            return (
+              <button
+                key={g.key}
+                onClick={() => setSelectedGroupKey((prev) => (prev === g.key ? null : g.key))}
+                className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                  isActive
+                    ? "bg-indigo-600 border-indigo-600 text-white"
+                    : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                }`}
+              >
+                <Icon size={13} className={isActive ? "text-white" : "text-indigo-400"} />
+                {g.label} ({checkedCount}/{g.rows.length})
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {!searchQ && !selectedGroupKey && (
+        <Card className="p-8 text-center text-sm text-slate-400">เลือกตำแหน่ง/กิจกรรมด้านบนเพื่อดูรายชื่อและเช็คชื่อ</Card>
+      )}
+
+      {visibleGroups.length === 0 && (searchQ || selectedGroupKey) && (
         <Card className="p-8 text-center text-sm text-slate-400">
-          {searchQ ? "ไม่พบนักศึกษาที่ตรงกับคำค้นหา" : "ยังไม่มีตำแหน่ง/นักศึกษาในระบบ"}
+          {searchQ ? "ไม่พบนักศึกษาที่ตรงกับคำค้นหา" : "ยังไม่มีนักศึกษาในตำแหน่งนี้"}
         </Card>
       )}
 
-      {visibleGroups.map((g) => {
+      {(searchQ ? visibleGroups : visibleGroups.filter((g) => g.key === selectedGroupKey)).map((g) => {
         const Icon = g.icon;
         const checkedCount = g.rows.filter((r) => r.checkin).length;
         return (
