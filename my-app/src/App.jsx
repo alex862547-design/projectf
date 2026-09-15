@@ -76,10 +76,14 @@ export default function App() {
       .finally(() => setLoading(false));
   }, []);
 
-  // ดึงข้อมูลใหม่เป็นระยะ (ทุก 4 วินาที) เพื่อให้ทุกคนเห็นข้อมูลล่าสุดโดยไม่ต้องกดรีเฟรชเอง
-  // (ตั้งใจไม่รวม "matches" ในนี้ เพราะแอดมินอาจกำลังพิมพ์คะแนนอยู่ ไม่อยากให้ค่าที่พิมพ์ค้างถูกเขียนทับ)
+  // ดึงข้อมูลใหม่เป็นระยะ (ทุก 4 วินาที) เพื่อให้ทุกคนเห็นข้อมูลล่าสุดโดยไม่ต้องกดรีเฟรชเอง เช่น เช็คชื่อจากอีก
+  // อุปกรณ์/แท็บแล้วต้องเห็นในหน้านี้ด้วย (ตั้งใจไม่รวม "matches" ในนี้ เพราะแอดมินอาจกำลังพิมพ์คะแนนอยู่
+  // ไม่อยากให้ค่าที่พิมพ์ค้างถูกเขียนทับ)
+  // เบราว์เซอร์จะหยุด/ถ่วง setInterval ของแท็บที่ถูกซ่อนไว้ (ไม่ได้โฟกัส) เพื่อประหยัดแบต ทำให้แท็บที่ถูกสลับไปทำ
+  // อย่างอื่นแล้วกลับมาเปิดดูอาจเห็นข้อมูลเก่าค้างอยู่นานกว่าที่ควร จึงดึงข้อมูลทันทีอีกครั้งเมื่อกลับมาโฟกัสแท็บ
+  // นี้ ไม่ต้องรอรอบถัดไปของ interval
   useEffect(() => {
-    const interval = setInterval(() => {
+    const refresh = () =>
       Promise.all([api.getStudents(), api.getNews(), api.getCheckins(), api.getRoles(), api.getStudentYears(), api.getEventDays(), api.getTeams()])
         .then(([s, n, c, r, sy, e, tm]) => {
           setStudents(s);
@@ -91,8 +95,18 @@ export default function App() {
           setTeams(tm);
         })
         .catch(() => {}); // พลาดชั่วคราวไม่เป็นไร รอบถัดไปจะลองใหม่เอง
-    }, 4000);
-    return () => clearInterval(interval);
+
+    const interval = setInterval(refresh, 4000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", refresh);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", refresh);
+    };
   }, []);
 
   // ถ้ามี token ค้างจากครั้งก่อน (ยังไม่หมดอายุ) ให้ล็อกอินอัตโนมัติ
