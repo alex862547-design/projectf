@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { FileSpreadsheet, FileText, Printer, ClipboardList, Users, Trophy, Calendar, CheckCircle2, History } from "lucide-react";
 import Card from "../common/Card";
 import { getTeams, teamById, formatThaiDate, sortStudentsByYear } from "../../utils/helpers";
@@ -194,9 +194,11 @@ export default function AdminReports({ students, matches, checkins, eventDays })
     },
   ];
 
-  // ปุ่มลัดกดแล้วเลื่อนตรงไปหาแต่ละส่วนได้เลย ไม่ต้องเลื่อนหน้าเว็บขึ้นลงเองทีละนิด (ซ่อนไว้ตอนพิมพ์ เพราะเป็น
-  // แค่ทางลัดสำหรับดูบนหน้าเว็บ ไม่มีประโยชน์บนกระดาษ)
-  const goToSection = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  // ไม่โชว์ตารางไหนไว้ล่วงหน้า — กดปุ่มหัวข้อไหนแล้วค่อยขึ้นข้อมูลของหัวข้อนั้น (ทีละหัวข้อ ไม่ใช่โชว์รวมกันหมด)
+  // กันไม่ให้ต้องเลื่อนหน้าเว็บผ่านข้อมูลหลายพันแถวเพื่อไปหาหัวข้อที่ต้องการ ส่วนไฟล์ Excel/Word ที่ส่งออกยังมี
+  // ข้อมูลครบทุกหัวข้อเสมอไม่ว่าจะเลือกดูหัวข้อไหนอยู่บนหน้าเว็บก็ตาม
+  const [activeSectionId, setActiveSectionId] = useState(null);
+  const activeSection = SECTIONS.find((sec) => sec.id === activeSectionId) || null;
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-5">
@@ -220,34 +222,43 @@ export default function AdminReports({ students, matches, checkins, eventDays })
         </div>
 
         <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-          {SECTIONS.map((sec) => (
-            <button
-              key={sec.id}
-              onClick={() => goToSection(sec.id)}
-              className="shrink-0 flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition"
-            >
-              <sec.icon size={13} className="text-indigo-400" /> {sec.title}
-            </button>
-          ))}
+          {SECTIONS.map((sec) => {
+            const active = activeSectionId === sec.id;
+            return (
+              <button
+                key={sec.id}
+                onClick={() => setActiveSectionId(sec.id)}
+                className={`shrink-0 flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-xs font-semibold transition ${
+                  active
+                    ? "bg-indigo-600 border-indigo-600 text-white"
+                    : "bg-slate-100 dark:bg-slate-800/60 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
+                }`}
+              >
+                <sec.icon size={13} className={active ? "text-white" : "text-indigo-400"} /> {sec.title}
+              </button>
+            );
+          })}
         </div>
       </Card>
 
       <div id="report-print-area" className="space-y-5">
         <div className="hidden print:block text-lg font-bold mb-2">รายงานกีฬาสี {formatThaiDate(today)}</div>
-        {SECTIONS.map((sec) => (
-          <div key={sec.id} id={sec.id} className="scroll-mt-4">
+        {!activeSection && (
+          <Card className="p-8 text-center text-sm text-slate-400">กดเลือกหัวข้อด้านบนเพื่อดูข้อมูล</Card>
+        )}
+        {activeSection && (
           <Card className="p-0 overflow-hidden">
             <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2" style={{ fontFamily: "Kanit, sans-serif" }}>
-              <sec.icon size={15} className="text-indigo-400" /> {sec.title}
+              <activeSection.icon size={15} className="text-indigo-400" /> {activeSection.title}
             </div>
             <div className="overflow-x-auto">
-              {sec.rows.length === 0 ? (
+              {activeSection.rows.length === 0 ? (
                 <div className="p-6 text-center text-sm text-slate-400">ไม่มีข้อมูล</div>
               ) : (
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400">
-                      {Object.keys(sec.rows[0]).map((c) => (
+                      {Object.keys(activeSection.rows[0]).map((c) => (
                         <th key={c} className="px-3 py-2 text-left font-semibold whitespace-nowrap">
                           {c}
                         </th>
@@ -255,9 +266,9 @@ export default function AdminReports({ students, matches, checkins, eventDays })
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
-                    {sec.rows.map((r, i) => (
+                    {activeSection.rows.map((r, i) => (
                       <tr key={i}>
-                        {Object.keys(sec.rows[0]).map((c) => (
+                        {Object.keys(activeSection.rows[0]).map((c) => (
                           <td key={c} className="px-3 py-1.5 text-slate-700 dark:text-slate-300 whitespace-nowrap">
                             {r[c]}
                           </td>
@@ -268,12 +279,11 @@ export default function AdminReports({ students, matches, checkins, eventDays })
                 </table>
               )}
             </div>
-            {sec.note && (
-              <div className="px-5 py-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-400">{sec.note}</div>
+            {activeSection.note && (
+              <div className="px-5 py-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-400">{activeSection.note}</div>
             )}
           </Card>
-          </div>
-        ))}
+        )}
       </div>
     </div>
   );
