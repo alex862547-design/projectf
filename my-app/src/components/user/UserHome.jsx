@@ -146,7 +146,9 @@ export default function UserHome({ student, students, matches, checkins, visitsT
 
       <Standings matches={matches} />
 
-      <MatchesTimeline matches={matches} />
+      <div id="matches-timeline-section" className="scroll-mt-4">
+        <MatchesTimeline matches={matches} />
+      </div>
 
       <div id="news-section" className="scroll-mt-4">
         <Card className="p-0 overflow-hidden">
