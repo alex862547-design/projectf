@@ -44,6 +44,7 @@ export default function App() {
   const [studentYears, setStudentYears] = useState([]);
   const [eventDays, setEventDays] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [visitsToday, setVisitsToday] = useState(0);
 
   const [userTab, setUserTab] = useState("home");
   const [adminTab, setAdminTab] = useState("students");
@@ -63,8 +64,8 @@ export default function App() {
 
   // โหลดข้อมูลสาธารณะจาก PostgreSQL ผ่าน backend API ตอนเปิดแอป
   useEffect(() => {
-    Promise.all([api.getStudents(), api.getMatches(), api.getNews(), api.getCheckins(), api.getCheckinConfirmations(), api.getRoles(), api.getStudentYears(), api.getEventDays(), api.getTeams()])
-      .then(([s, m, n, c, cc, r, sy, e, tm]) => {
+    Promise.all([api.getStudents(), api.getMatches(), api.getNews(), api.getCheckins(), api.getCheckinConfirmations(), api.getRoles(), api.getStudentYears(), api.getEventDays(), api.getTeams(), api.getVisitsToday()])
+      .then(([s, m, n, c, cc, r, sy, e, tm, v]) => {
         setStudents(s);
         setMatches(m);
         setNews(n);
@@ -74,9 +75,16 @@ export default function App() {
         setStudentYears(sy);
         setEventDays(e);
         setTeams(tm);
+        setVisitsToday(v.count);
       })
       .catch((err) => setLoadError(err.message))
       .finally(() => setLoading(false));
+  }, []);
+
+  // นับยอดเข้าชมวันนี้ +1 ครั้งเดียวตอนเปิดเว็บ (ไม่ผูกกับ polling ด้านล่าง กันนับซ้ำทุก 4 วิ) — นับทุกคนที่เปิดเว็บ
+  // ไม่ว่าจะล็อกอินหรือดูในโหมดผู้เยี่ยมชม
+  useEffect(() => {
+    api.recordVisit().then((v) => setVisitsToday(v.count)).catch(() => {});
   }, []);
 
   // ดึงข้อมูลใหม่เป็นระยะ (ทุก 4 วินาที) เพื่อให้ทุกคนเห็นข้อมูลล่าสุดโดยไม่ต้องกดรีเฟรชเอง เช่น เช็คชื่อจากอีก
@@ -87,8 +95,8 @@ export default function App() {
   // นี้ ไม่ต้องรอรอบถัดไปของ interval
   useEffect(() => {
     const refresh = () =>
-      Promise.all([api.getStudents(), api.getNews(), api.getCheckins(), api.getCheckinConfirmations(), api.getRoles(), api.getStudentYears(), api.getEventDays(), api.getTeams()])
-        .then(([s, n, c, cc, r, sy, e, tm]) => {
+      Promise.all([api.getStudents(), api.getNews(), api.getCheckins(), api.getCheckinConfirmations(), api.getRoles(), api.getStudentYears(), api.getEventDays(), api.getTeams(), api.getVisitsToday()])
+        .then(([s, n, c, cc, r, sy, e, tm, v]) => {
           setStudents(s);
           setNews(n);
           setCheckins(c);
@@ -97,6 +105,7 @@ export default function App() {
           setStudentYears(sy);
           setEventDays(e);
           setTeams(tm);
+          setVisitsToday(v.count);
         })
         .catch(() => {}); // พลาดชั่วคราวไม่เป็นไร รอบถัดไปจะลองใหม่เอง
 
@@ -217,7 +226,7 @@ export default function App() {
         <GuestView
           students={students}
           matches={matches}
-          checkins={checkins}
+          visitsToday={visitsToday}
           news={news}
           roles={roles}
           theme={theme}
@@ -276,7 +285,7 @@ export default function App() {
             subtitle={`${student.name} · รหัสนักศึกษา ${student.id} · ${student.role}`}
             badge={<Badge team={student.team} />}
           />
-          {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} news={news} roles={roles} onGoToHistory={() => setActiveTab("history")} />}
+          {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} visitsToday={visitsToday} news={news} roles={roles} onGoToHistory={() => setActiveTab("history")} />}
           {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} roles={roles} eventDays={eventDays} checkerUnreadCount={checkerUnreadCount} />}
           {activeTab === "schedule" && <MatchSchedule matches={matches} students={students} />}
           {activeTab === "history" && <UserHistory student={student} matches={matches} checkins={checkins} eventDays={eventDays} checkinConfirmations={checkinConfirmations} />}

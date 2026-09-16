@@ -81,6 +81,9 @@ export const api = {
     request("/checkin-confirmations", { method: "POST", body: JSON.stringify({ team, role, date }) }),
   deleteCheckinConfirmation: (id) => request(`/checkin-confirmations/${id}`, { method: "DELETE" }),
 
+  getVisitsToday: () => request("/visits/today"),
+  recordVisit: () => request("/visits", { method: "POST" }),
+
   getAttendanceMessages: (studentId, date) =>
     request(`/attendance-messages?studentId=${encodeURIComponent(studentId)}&date=${encodeURIComponent(date)}`),
   getAttendanceMessageDates: (studentId) =>

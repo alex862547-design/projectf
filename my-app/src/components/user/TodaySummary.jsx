@@ -14,12 +14,11 @@ function Stat({ value, label }) {
 }
 
 // แบนเนอร์ไล่สีทีมบนสุดของหน้าหลัก (UserHome/GuestHome) — โชว์วันที่วันนี้ ตัวเลขสรุป (กำลังแข่ง/รายการวันนี้/
-// รายการทั้งหมด/เช็คชื่อวันนี้) และแถบข่าวล่าสุด กดแถบข่าวแล้วเลื่อนจอลงไปที่ส่วนข่าวสารด้านล่างให้อัตโนมัติ
-export default function TodaySummary({ matches, checkins, news }) {
+// รายการทั้งหมด/ยอดเข้าชมวันนี้) และแถบข่าวล่าสุด กดแถบข่าวแล้วเลื่อนจอลงไปที่ส่วนข่าวสารด้านล่างให้อัตโนมัติ
+export default function TodaySummary({ matches, visitsToday, news }) {
   const today = todayISODate();
   const matchesToday = matches.filter((m) => m.date === today);
   const liveNow = matchesToday.filter((m) => m.status !== "จบการแข่งขัน").length;
-  const checkinsToday = checkins.filter((c) => c.date === today).length;
   const latestNews = news[0];
 
   // สีของแบนเนอร์ไล่ตามสีทีมที่มีในกิจกรรมนี้ (โทนเข้มลงเพื่อให้ตัวหนังสือขาวยังอ่านง่าย)
@@ -56,7 +55,7 @@ export default function TodaySummary({ matches, checkins, news }) {
           <Stat value={liveNow} label="กำลังแข่งขัน" />
           <Stat value={matchesToday.length} label="รายการวันนี้" />
           <Stat value={matches.length} label="รายการทั้งหมด" />
-          <Stat value={checkinsToday} label="เช็คชื่อวันนี้" />
+          <Stat value={visitsToday} label="ยอดเข้าชมวันนี้" />
         </div>
       </div>
 

@@ -100,7 +100,7 @@ function MembersModal({ open, title, icon: Icon, members, student, showTeamBadge
 // การ์ดสถิติ 3 ใบกดได้ทั้งหมด: "สังกัดสี" เปิดดูรายชื่อทั้งทีมสีเดียวกัน, "บทบาทกีฬา" เปิดดูรายชื่อคนตำแหน่ง
 // เดียวกัน (ทั้งสองอันเรียงตามชั้นปีและไฮไลท์+เลื่อนไปแถวตัวเองให้อัตโนมัติ) ส่วน "เช็คชื่อแล้ว" กดแล้วพาไปหน้า
 // "ประวัติของฉัน" เลย (onGoToHistory มาจาก App.jsx สั่ง setActiveTab("history"))
-export default function UserHome({ student, students, matches, checkins, news, roles, onGoToHistory }) {
+export default function UserHome({ student, students, matches, checkins, visitsToday, news, roles, onGoToHistory }) {
   const myCheckins = checkins.filter((c) => c.studentId === student.id);
   const [viewNews, setViewNews] = useState(null);
   const [memberModal, setMemberModal] = useState(null); // "team" | "role" | null
@@ -110,7 +110,7 @@ export default function UserHome({ student, students, matches, checkins, news, r
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-6">
-      <TodaySummary matches={matches} checkins={checkins} news={news} />
+      <TodaySummary matches={matches} visitsToday={visitsToday} news={news} />
 
       <ActivityShortcuts students={students} roles={roles} />
 

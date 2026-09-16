@@ -7,11 +7,11 @@ import TodaySummary from "../user/TodaySummary";
 import { formatThaiDate } from "../../utils/helpers";
 
 // หน้าแรกสำหรับผู้เยี่ยมชม (ไม่ได้ล็อกอิน) — เหมือนหน้าแรกของนักศึกษา แต่ตัดส่วนข้อมูลส่วนตัว (สังกัดสี/บทบาท/เช็คชื่อ) ออก
-export default function GuestHome({ students, matches, checkins, news, roles }) {
+export default function GuestHome({ students, matches, visitsToday, news, roles }) {
   const [viewNews, setViewNews] = useState(null);
   return (
     <div className="px-4 md:px-8 pb-10 space-y-6">
-      <TodaySummary matches={matches} checkins={checkins} news={news} />
+      <TodaySummary matches={matches} visitsToday={visitsToday} news={news} />
 
       <ActivityShortcuts students={students} roles={roles} />
 

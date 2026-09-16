@@ -10,7 +10,7 @@ const TABS = [
 ];
 
 // หน้าเยี่ยมชมเว็บไซต์แบบไม่ต้องล็อกอิน (สำหรับผู้ที่ไม่ใช่นักศึกษา) — เห็นได้แค่หน้าหลักกับตารางแข่งขันเท่านั้น
-export default function GuestView({ students, matches, checkins, news, roles, theme, onToggleTheme, onExit }) {
+export default function GuestView({ students, matches, visitsToday, news, roles, theme, onToggleTheme, onExit }) {
   const [activeTab, setActiveTab] = useState("home");
   const active = TABS.find((t) => t.key === activeTab) || TABS[0];
   const isDark = theme === "dark";
@@ -60,7 +60,7 @@ export default function GuestView({ students, matches, checkins, news, roles, th
         subtitle="กำลังเยี่ยมชมแบบไม่ล็อกอิน — เข้าสู่ระบบเพื่อใช้งานฟีเจอร์อื่นๆ เช่น เช็คชื่อ"
       />
 
-      {activeTab === "home" && <GuestHome students={students} matches={matches} checkins={checkins} news={news} roles={roles} />}
+      {activeTab === "home" && <GuestHome students={students} matches={matches} visitsToday={visitsToday} news={news} roles={roles} />}
       {activeTab === "schedule" && <MatchSchedule matches={matches} students={students} />}
     </div>
   );
