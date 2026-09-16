@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Calendar, Trophy, Newspaper, CheckCircle2, Clock, Briefcase, CalendarDays, Eye, ClipboardList } from "lucide-react";
+import { Users, Calendar, Trophy, Newspaper, CheckCircle2, Clock, Briefcase, CalendarDays, Eye, ClipboardList, FileBarChart } from "lucide-react";
 
 import Login from "./components/Login";
 import GuestView from "./components/guest/GuestView";
@@ -20,6 +20,7 @@ import AdminMatches from "./components/admin/AdminMatches";
 import AdminNews from "./components/admin/AdminNews";
 import AdminEventDays from "./components/admin/AdminEventDays";
 import AdminCheckins from "./components/admin/AdminCheckins";
+import AdminReports from "./components/admin/AdminReports";
 
 import { api, getAuthToken, setAuthToken } from "./api";
 import { setTeams as setTeamsCache } from "./utils/helpers";
@@ -304,6 +305,7 @@ export default function App() {
       { key: "checkins", label: "จัดการเช็คชื่อ", icon: ClipboardList },
       { key: "news", label: "ข่าวสาร", icon: Newspaper },
       { key: "eventdays", label: "วันจัดกิจกรรม", icon: CalendarDays },
+      { key: "reports", label: "สรุปผล/ส่งออกข้อมูล", icon: FileBarChart },
     ];
 
     if (previewMode && students.length > 0) {
@@ -342,6 +344,7 @@ export default function App() {
           {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} eventDays={eventDays} />}
           {adminTab === "news" && <AdminNews news={news} setNews={setNews} />}
           {adminTab === "eventdays" && <AdminEventDays eventDays={eventDays} setEventDays={setEventDays} />}
+          {adminTab === "reports" && <AdminReports students={students} matches={matches} checkins={checkins} eventDays={eventDays} />}
         </Shell>
         <Toast toast={toast} onClose={() => setToast(null)} />
       </>

@@ -75,6 +75,24 @@ html.dark ::-webkit-scrollbar-thumb:hover {
   100% { background-position: 0% 50%; }
 }
 
+/* หน้าสรุปผล/ส่งออกข้อมูล (AdminReports.jsx) — ตอนกด "พิมพ์เอกสาร" ให้ซ่อนทุกอย่าง (แถบเมนู, ปุ่ม)
+   เหลือแค่ตารางสรุปใน #report-print-area ทั้งหน้า ไม่ต้องแก้ Shell.jsx ที่ใช้ร่วมกันทุกหน้า */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #report-print-area,
+  #report-print-area * {
+    visibility: visible;
+  }
+  #report-print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
 @keyframes sparkle-fade {
   0% {
     opacity: 0.9;
