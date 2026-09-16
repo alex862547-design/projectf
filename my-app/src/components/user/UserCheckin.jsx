@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState } from "react";
-import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search, CalendarDays, ChevronDown, Inbox } from "lucide-react";
+import { CheckCircle2, XCircle, Lock, Users, Trophy, MessageCircle, RotateCcw, QrCode, Search, CalendarDays, ChevronDown, Inbox, ShieldCheck, Undo2 } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import AbsentNoteDialog from "../common/AbsentNoteDialog";
@@ -25,7 +25,13 @@ import {
 // เลือก "วันที่" ที่จะเช็คชื่อให้ได้ (ค่าเริ่มต้น = วันนี้) เพื่อเช็คชื่อย้อนหลังกรณีลืมเช็คในวันจริง — เลือกได้แค่
 // วันนี้หรือวันที่ผ่านมาแล้วเท่านั้น (ห้ามล่วงหน้า) ปุ่มจะรีเซ็ตตามวันที่เลือกไว้ ไม่ใช่ตามวันจริงเสมอไป
 // มีปุ่ม "กล่องข้อความ" ไว้ดูข้อความที่นักศึกษาตอบกลับมาได้แบบรวมทุกคน/ทุกวัน ไม่ต้องไล่เปิดทีละคน
-export default function UserCheckin({ student, students, matches, checkins, setCheckins, roles, checkerUnreadCount = 0 }) {
+// มีปุ่ม "ยืนยันข้อมูลทั้งหมด" ต่อจากรายชื่อ ไว้ให้กดยืนยันว่าตรวจทานข้อมูลของตำแหน่ง+วันที่นั้นครบถูกต้องแล้ว
+// (เก็บเป็นป้ายในตาราง checkin_confirmations แยกจาก checkins เฉยๆ ไม่ได้ล็อกห้ามเช็คชื่อ/แก้ไขต่อ) ไม่โชว์
+// ตอนกำลังค้นหาข้ามตำแหน่ง เพราะไม่มีตำแหน่งเดียวให้ยืนยัน
+export default function UserCheckin({
+  student, students, matches, checkins, setCheckins, checkinConfirmations = [], setCheckinConfirmations,
+  roles, checkerUnreadCount = 0,
+}) {
   // หัวหน้าสีเท่านั้นที่เช็คชื่อได้ทุกตำแหน่งในสีตัวเอง — server (assertCanActOnStudent) บังคับเงื่อนไขเดียวกันนี้
   // อยู่แล้ว ทำที่ frontend ด้วยเพื่อไม่ให้เห็น UI ของสิทธิ์ที่ทำจริงไม่ได้ (กดแล้วจะโดน 403 จาก server)
   const isTeamLead = student.role === "หัวหน้าสี";
@@ -38,6 +44,7 @@ export default function UserCheckin({ student, students, matches, checkins, setC
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่งที่กำลังเปิดดูรายชื่ออยู่ (ปุ่มลัด)
   const [scannerOpen, setScannerOpen] = useState(false);
   const [inboxOpen, setInboxOpen] = useState(false);
+  const [confirmGroupOpen, setConfirmGroupOpen] = useState(false); // เปิดกล่องยืนยัน "ข้อมูลทั้งหมดของตำแหน่งนี้ถูกต้องแล้ว"
   const [searchQuery, setSearchQuery] = useState("");
   const dateInputRef = useRef(null); // ใช้เปิดปฏิทินเนทีฟผ่าน showPicker() ตอนกดที่การ์ดเลือกวันที่
   // วันที่กำลังเช็คชื่อให้อยู่ — ค่าเริ่มต้นเป็นวันนี้ตามเวลาเครื่อง เปลี่ยนได้เพื่อเช็คชื่อย้อนหลัง
@@ -192,6 +199,46 @@ export default function UserCheckin({ student, students, matches, checkins, setC
     : activeRole
     ? sortStudentsByYear(teammates.filter((t) => (t.role || "") === activeRole))
     : [];
+
+  // "ยืนยันข้อมูลทั้งหมด" ของตำแหน่ง/กิจกรรมที่กำลังดูอยู่ + วันที่เลือกไว้ — เป็นแค่ป้ายบอกว่าตรวจทานแล้ว
+  // ไม่ได้ล็อกห้ามเช็คชื่อ/แก้ไขต่อ ใช้ได้แค่ตอนไม่ได้ค้นหา (ค้นหาข้ามหลายตำแหน่งพร้อมกัน ไม่มีตำแหน่งเดียวให้ยืนยัน)
+  const activeConfirmation =
+    !isSearching && activeRole
+      ? checkinConfirmations.find(
+          (c) => c.team === student.team && c.role === activeRole && c.date === selectedDate
+        )
+      : null;
+  const groupPresentCount = activeMembers.filter((t) => {
+    const rec = checkins.find((c) => c.studentId === t.id && c.date === selectedDate && (c.matchId ?? null) === (activeMatch?.id ?? null));
+    return rec && (rec.status || "present") === "present";
+  }).length;
+  const groupAbsentCount = activeMembers.filter((t) => {
+    const rec = checkins.find((c) => c.studentId === t.id && c.date === selectedDate && (c.matchId ?? null) === (activeMatch?.id ?? null));
+    return rec && rec.status === "absent";
+  }).length;
+  const groupPendingCount = activeMembers.length - groupPresentCount - groupAbsentCount;
+
+  const submitGroupConfirm = async () => {
+    try {
+      const created = await api.confirmCheckinGroup(student.team, activeRole, selectedDate);
+      setCheckinConfirmations((prev) => [...prev.filter((c) => c.id !== created.id), created]);
+      setConfirmGroupOpen(false);
+      setToast({ type: "success", message: `ยืนยันข้อมูล "${activeRoleSport || activeRole}"${isRetroactive ? ` (${dateLabel})` : ""} แล้ว` });
+    } catch (err) {
+      setToast({ type: "error", message: "ยืนยันไม่สำเร็จ: " + err.message });
+    }
+  };
+
+  const undoGroupConfirm = async () => {
+    if (!activeConfirmation) return;
+    try {
+      await api.deleteCheckinConfirmation(activeConfirmation.id);
+      setCheckinConfirmations((prev) => prev.filter((c) => c.id !== activeConfirmation.id));
+      setToast({ type: "success", message: "ยกเลิกการยืนยันแล้ว" });
+    } catch (err) {
+      setToast({ type: "error", message: "ยกเลิกไม่สำเร็จ: " + err.message });
+    }
+  };
 
   // สรุปว่า "กำลังเช็คชื่อกิจกรรมไหนอยู่" ให้เห็นชัดๆ แยกจากประโยคบอกสิทธิ์ด้านล่าง (คนละเรื่องกัน) — ตอนค้นหา
   // จะข้ามการเลือกตำแหน่งไปเลย เลยไม่มีกิจกรรมเดียวให้บอกตรงๆ ใช้ข้อความสรุปรวมแทน
@@ -393,6 +440,60 @@ export default function UserCheckin({ student, students, matches, checkins, setC
         </>
       )}
 
+      {/* ปุ่ม "ยืนยันข้อมูลทั้งหมด" ของตำแหน่งนี้+วันนี้ — แค่ป้ายบอกว่าตรวจทานแล้วว่าถูกต้องครบถ้วน ไม่ได้ล็อก
+          ห้ามเช็คชื่อ/แก้ไขต่อ กดยืนยันซ้ำได้เรื่อยๆถ้ามีการแก้ไขเพิ่มทีหลัง ไม่โชว์ตอนกำลังค้นหา (ค้นหาข้าม
+          หลายตำแหน่งพร้อมกัน ไม่มีตำแหน่งเดียวให้ยืนยัน) */}
+      {!isSearching && activeRole && (
+        <div
+          className={`rounded-2xl border p-4 flex items-center gap-3 flex-wrap ${
+            activeConfirmation
+              ? "border-emerald-500/30 bg-emerald-500/5"
+              : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+          }`}
+        >
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+              activeConfirmation ? "bg-emerald-500/15 text-emerald-500" : "bg-slate-500/10 text-slate-400"
+            }`}
+          >
+            <ShieldCheck size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            {activeConfirmation ? (
+              <>
+                <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400">ยืนยันข้อมูลแล้ว</div>
+                <div className="text-xs text-slate-400">
+                  โดย {activeConfirmation.confirmedBy?.isAdmin ? "แอดมิน" : activeConfirmation.confirmedBy?.name || "-"}
+                  {activeConfirmation.confirmedAt && ` · ${new Date(activeConfirmation.confirmedAt).toLocaleString("th-TH")}`}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="text-sm font-bold text-slate-700 dark:text-slate-200">ยังไม่ยืนยันข้อมูลของวันนี้</div>
+                <div className="text-xs text-slate-400">
+                  มา {groupPresentCount} · ขาด {groupAbsentCount} · ยังไม่เช็ค {groupPendingCount} คน
+                </div>
+              </>
+            )}
+          </div>
+          {activeConfirmation ? (
+            <button
+              onClick={undoGroupConfirm}
+              className="shrink-0 flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs font-semibold px-3.5 py-2 hover:bg-slate-100 dark:hover:bg-slate-800"
+            >
+              <Undo2 size={14} /> ยกเลิกการยืนยัน
+            </button>
+          ) : (
+            <button
+              onClick={() => setConfirmGroupOpen(true)}
+              className="shrink-0 flex items-center gap-1.5 rounded-lg bg-emerald-600 text-white text-xs font-semibold px-3.5 py-2 hover:bg-emerald-700"
+            >
+              <ShieldCheck size={14} /> ยืนยันข้อมูลทั้งหมด
+            </button>
+          )}
+        </div>
+      )}
+
       {(activeRole || isSearching) && (
         <Card className="p-0 overflow-hidden">
           {activeMembers.length === 0 && (
@@ -557,6 +658,15 @@ export default function UserCheckin({ student, students, matches, checkins, setC
           setThreadFor({ studentId, date });
         }}
         onClose={() => setInboxOpen(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmGroupOpen}
+        title="ยืนยันข้อมูลทั้งหมด?"
+        message={`ยืนยันว่าข้อมูลเช็คชื่อของ "${activeRoleSport || activeRole}" สำหรับ${dateLabel} ถูกต้องครบถ้วนแล้ว — มา ${groupPresentCount} คน · ขาด ${groupAbsentCount} คน · ยังไม่เช็ค ${groupPendingCount} คน (ยังกดเช็คชื่อ/แก้ไขเพิ่มได้ตามปกติ ไม่ได้ล็อกข้อมูล)`}
+        confirmLabel="ยืนยันข้อมูล"
+        onCancel={() => setConfirmGroupOpen(false)}
+        onConfirm={submitGroupConfirm}
       />
 
       <Toast toast={toast} onClose={() => setToast(null)} />

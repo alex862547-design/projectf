@@ -76,6 +76,11 @@ export const api = {
   updateCheckin: (id, data) => request(`/checkins/${id}`, { method: "PUT", body: JSON.stringify(data) }),
   deleteCheckin: (id) => request(`/checkins/${id}`, { method: "DELETE" }),
 
+  getCheckinConfirmations: () => request("/checkin-confirmations"),
+  confirmCheckinGroup: (team, role, date) =>
+    request("/checkin-confirmations", { method: "POST", body: JSON.stringify({ team, role, date }) }),
+  deleteCheckinConfirmation: (id) => request(`/checkin-confirmations/${id}`, { method: "DELETE" }),
+
   getAttendanceMessages: (studentId, date) =>
     request(`/attendance-messages?studentId=${encodeURIComponent(studentId)}&date=${encodeURIComponent(date)}`),
   getAttendanceMessageDates: (studentId) =>
