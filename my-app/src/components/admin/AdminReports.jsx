@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { FileSpreadsheet, FileText, Printer, ClipboardList } from "lucide-react";
+import { FileSpreadsheet, FileText, Printer, ClipboardList, Users, Trophy, Calendar, CheckCircle2, History } from "lucide-react";
 import Card from "../common/Card";
 import { getTeams, teamById, formatThaiDate, sortStudentsByYear } from "../../utils/helpers";
 
@@ -178,12 +178,14 @@ export default function AdminReports({ students, matches, checkins, eventDays })
   const printReport = () => window.print();
 
   const SECTIONS = [
-    { title: "รายชื่อนักศึกษา", rows: studentRows },
-    { title: "อันดับคะแนนรวม", rows: standingsRows },
-    { title: "ตารางการแข่งขัน", rows: matchRows },
-    { title: "สรุปการเช็คชื่อ", rows: attendanceRows },
+    { id: "report-students", title: "รายชื่อนักศึกษา", icon: Users, rows: studentRows },
+    { id: "report-standings", title: "อันดับคะแนนรวม", icon: Trophy, rows: standingsRows },
+    { id: "report-matches", title: "ตารางการแข่งขัน", icon: Calendar, rows: matchRows },
+    { id: "report-attendance", title: "สรุปการเช็คชื่อ", icon: CheckCircle2, rows: attendanceRows },
     {
+      id: "report-history",
       title: "ประวัติการเข้าร่วมกิจกรรม",
+      icon: History,
       rows: historyRowsPreview,
       note:
         historyRows.length > HISTORY_PREVIEW_LIMIT
@@ -191,6 +193,10 @@ export default function AdminReports({ students, matches, checkins, eventDays })
           : null,
     },
   ];
+
+  // ปุ่มลัดกดแล้วเลื่อนตรงไปหาแต่ละส่วนได้เลย ไม่ต้องเลื่อนหน้าเว็บขึ้นลงเองทีละนิด (ซ่อนไว้ตอนพิมพ์ เพราะเป็น
+  // แค่ทางลัดสำหรับดูบนหน้าเว็บ ไม่มีประโยชน์บนกระดาษ)
+  const goToSection = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-5">
@@ -212,14 +218,27 @@ export default function AdminReports({ students, matches, checkins, eventDays })
             <Printer size={14} /> พิมพ์เอกสาร
           </button>
         </div>
+
+        <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+          {SECTIONS.map((sec) => (
+            <button
+              key={sec.id}
+              onClick={() => goToSection(sec.id)}
+              className="shrink-0 flex items-center gap-1.5 rounded-full bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 px-3.5 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400 transition"
+            >
+              <sec.icon size={13} className="text-indigo-400" /> {sec.title}
+            </button>
+          ))}
+        </div>
       </Card>
 
       <div id="report-print-area" className="space-y-5">
         <div className="hidden print:block text-lg font-bold mb-2">รายงานกีฬาสี {formatThaiDate(today)}</div>
         {SECTIONS.map((sec) => (
-          <Card key={sec.title} className="p-0 overflow-hidden">
-            <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-900 dark:text-slate-100" style={{ fontFamily: "Kanit, sans-serif" }}>
-              {sec.title}
+          <div key={sec.id} id={sec.id} className="scroll-mt-4">
+          <Card className="p-0 overflow-hidden">
+            <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2" style={{ fontFamily: "Kanit, sans-serif" }}>
+              <sec.icon size={15} className="text-indigo-400" /> {sec.title}
             </div>
             <div className="overflow-x-auto">
               {sec.rows.length === 0 ? (
@@ -253,6 +272,7 @@ export default function AdminReports({ students, matches, checkins, eventDays })
               <div className="px-5 py-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-400">{sec.note}</div>
             )}
           </Card>
+          </div>
         ))}
       </div>
     </div>
