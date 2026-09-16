@@ -54,10 +54,10 @@ function MatchCard({ match, onSelectTeam }) {
   );
 }
 
-// สรุปตารางการแข่งขันทั้งหมด แยกเป็นกลุ่มตามวันที่ กดหัวข้อวันที่เพื่อกาง/พับดูรายการของวันนั้นได้ (เปิดวันแรก
-// ไว้ให้ก่อนโดยอัตโนมัติ) เปิดได้พร้อมกันหลายวัน — กดวันอื่นเพิ่มไม่ทำให้วันที่เปิดไว้ก่อนหน้าพับกลับไป
-// ต่อท้ายกราฟอันดับคะแนนในหน้า "หน้าหลัก" ให้เห็นภาพรวมทั้งหมดโดยไม่ต้องสลับไปหน้า "ตารางแข่งขัน"
-// (ซึ่งแบ่งดูทีละกีฬาแบบสาย bracket แทน)
+// สรุปตารางการแข่งขันทั้งหมด แยกเป็นกลุ่มตามวันที่ กดหัวข้อวันที่เพื่อกาง/พับดูรายการของวันนั้นได้ — พับไว้หมด
+// ตั้งแต่แรกโหลด/รีเฟรชหน้า (ไม่เปิดวันไหนไว้ให้ล่วงหน้า) เปิดได้พร้อมกันหลายวัน กดวันอื่นเพิ่มไม่ทำให้วันที่
+// เปิดไว้ก่อนหน้าพับกลับไป ต่อท้ายกราฟอันดับคะแนนในหน้า "หน้าหลัก" ให้เห็นภาพรวมทั้งหมดโดยไม่ต้องสลับไปหน้า
+// "ตารางแข่งขัน" (ซึ่งแบ่งดูทีละกีฬาแบบสาย bracket แทน)
 export default function MatchesTimeline({ matches, students }) {
   const groups = useMemo(() => {
     const map = new Map();
@@ -70,7 +70,7 @@ export default function MatchesTimeline({ matches, students }) {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [matches]);
 
-  const [expandedDates, setExpandedDates] = useState(() => new Set(groups[0] ? [groups[0].date] : []));
+  const [expandedDates, setExpandedDates] = useState(() => new Set());
   const toggleDate = (date) =>
     setExpandedDates((prev) => {
       const next = new Set(prev);
