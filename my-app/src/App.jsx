@@ -277,7 +277,7 @@ export default function App() {
             badge={<Badge team={student.team} />}
           />
           {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} news={news} roles={roles} />}
-          {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} roles={roles} checkerUnreadCount={checkerUnreadCount} />}
+          {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} roles={roles} eventDays={eventDays} checkerUnreadCount={checkerUnreadCount} />}
           {activeTab === "schedule" && <MatchSchedule matches={matches} students={students} />}
           {activeTab === "history" && <UserHistory student={student} matches={matches} checkins={checkins} eventDays={eventDays} />}
           {activeTab === "roles" && student.canCheckin && (
@@ -330,7 +330,7 @@ export default function App() {
           />
           {adminTab === "students" && <AdminStudents students={students} setStudents={setStudents} roles={roles} setRoles={setRoles} studentYears={studentYears} setStudentYears={setStudentYears} teams={teams} setTeams={setTeams} />}
           {adminTab === "matches" && <AdminMatches matches={matches} setMatches={setMatches} teams={teams} />}
-          {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} />}
+          {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} eventDays={eventDays} />}
           {adminTab === "news" && <AdminNews news={news} setNews={setNews} />}
           {adminTab === "eventdays" && <AdminEventDays eventDays={eventDays} setEventDays={setEventDays} />}
         </Shell>

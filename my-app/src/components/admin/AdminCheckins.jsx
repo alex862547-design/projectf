@@ -21,9 +21,12 @@ function toIso(d) {
 // จัดกลุ่มตาม "ตำแหน่ง/ประเภทกิจกรรม" ทุกตำแหน่งที่มีในระบบ (เหมือนหน้าเช็คชื่อของนักศึกษา แต่แอดมินเห็นทุกสี
 // ทุกตำแหน่งพร้อมกัน ไม่ถูกจำกัดแค่สี/ตำแหน่งตัวเอง) แต่ละแถวถ้ายังไม่เช็คชื่อจะมีปุ่ม "เช็คชื่อ/เช็คขาด" กดเช็ค
 // ได้ทันทีเหมือนฝั่งนักศึกษา ถ้าเช็คไปแล้วจะแก้ไขสถานะ/เวลา หรือลบรายการที่บันทึกผิดได้เลย
-export default function AdminCheckins({ checkins, setCheckins, students, matches, roles }) {
+export default function AdminCheckins({ checkins, setCheckins, students, matches, roles, eventDays = [] }) {
   const todayStr = toIso(new Date());
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  // เช็คชื่อได้แค่วันที่แอดมินตั้งไว้เป็น "วันจัดกิจกรรม" เท่านั้น — server บังคับเงื่อนไขเดียวกันนี้อยู่แล้วตอน
+  // POST /api/checkins กันเผลอเช็คชื่อวันที่ไม่มีกิจกรรมเลย ทำที่หน้านี้ด้วยเพื่อไม่ให้เห็นปุ่มที่กดแล้วโดนปฏิเสธเปล่าๆ
+  const isEventDay = eventDays.some((d) => d.date === selectedDate);
   const dateInputRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [error, setError] = useState("");
@@ -275,6 +278,13 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
             <ChevronRight size={18} />
           </button>
         </div>
+        {!isEventDay && (
+          <div className="px-4 py-2 border-t border-red-500/20 bg-red-500/5">
+            <span className="text-[11px] font-semibold text-red-500 dark:text-red-400">
+              วันนี้ไม่ใช่วันจัดกิจกรรม จึงเช็คชื่อไม่ได้ — ไปที่ "วันจัดกิจกรรม" เพื่อเพิ่มวันนี้เข้าไป หรือเลือกวันที่อื่นที่มีกิจกรรม
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -385,7 +395,8 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
             </label>
             <button
               onClick={submitAdd}
-              disabled={!addStudent}
+              disabled={!addStudent || !isEventDay}
+              title={!isEventDay ? "วันที่นี้ไม่ใช่วันจัดกิจกรรม เช็คชื่อไม่ได้" : undefined}
               className="ml-auto flex items-center gap-1.5 rounded-lg bg-indigo-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
             >
               <Plus size={14} /> เพิ่มรายการ
@@ -474,13 +485,17 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         onClick={() => quickCheckin(student, g.matchId, "present")}
-                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
+                        disabled={!isEventDay}
+                        title={!isEventDay ? "วันที่นี้ไม่ใช่วันจัดกิจกรรม เช็คชื่อไม่ได้" : undefined}
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-indigo-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
                       >
                         <CheckCircle2 size={14} /> เช็คชื่อ
                       </button>
                       <button
                         onClick={() => quickCheckin(student, g.matchId, "absent")}
-                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-white dark:bg-slate-900 text-red-400 border border-red-900/50 text-xs font-semibold px-3.5 py-2 hover:bg-red-500/10"
+                        disabled={!isEventDay}
+                        title={!isEventDay ? "วันที่นี้ไม่ใช่วันจัดกิจกรรม เช็คชื่อไม่ได้" : undefined}
+                        className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-white dark:bg-slate-900 text-red-400 border border-red-900/50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold px-3.5 py-2 hover:bg-red-500/10"
                       >
                         <XCircle size={14} /> เช็คขาด
                       </button>

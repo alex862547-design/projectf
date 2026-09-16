@@ -30,7 +30,7 @@ import {
 // ตอนกำลังค้นหาข้ามตำแหน่ง เพราะไม่มีตำแหน่งเดียวให้ยืนยัน
 export default function UserCheckin({
   student, students, matches, checkins, setCheckins, checkinConfirmations = [], setCheckinConfirmations,
-  roles, checkerUnreadCount = 0,
+  roles, eventDays = [], checkerUnreadCount = 0,
 }) {
   // หัวหน้าสีเท่านั้นที่เช็คชื่อได้ทุกตำแหน่งในสีตัวเอง — server (assertCanActOnStudent) บังคับเงื่อนไขเดียวกันนี้
   // อยู่แล้ว ทำที่ frontend ด้วยเพื่อไม่ให้เห็น UI ของสิทธิ์ที่ทำจริงไม่ได้ (กดแล้วจะโดน 403 จาก server)
@@ -94,6 +94,10 @@ export default function UserCheckin({
   const isRetroactive = selectedDate !== todayStr;
   // ใช้ต่อท้ายชื่อวัน/ข้อความแจ้งเตือนต่างๆ ให้ชัดว่ากำลังทำรายการของวันไหน (เฉพาะตอนไม่ใช่วันนี้ จะไม่พูดซ้ำว่า "วันนี้")
   const dateLabel = isRetroactive ? `วันที่ ${formatThaiDate(selectedDate)}` : "วันนี้";
+  // เช็คชื่อได้แค่วันที่แอดมินตั้งไว้เป็น "วันจัดกิจกรรม" เท่านั้น (server บังคับเงื่อนไขเดียวกันนี้อยู่แล้วตอน
+  // POST /api/checkins กันเผลอเช็คชื่อวันที่ไม่มีกิจกรรมเลย ซึ่งจะทำให้กราฟสรุปในหน้า "ประวัติของฉัน" เพี้ยน)
+  // ทำที่ frontend ด้วยเพื่อไม่ให้เห็นปุ่มที่กดแล้วจะโดนปฏิเสธจาก server เปล่าๆ
+  const isEventDay = eventDays.some((d) => d.date === selectedDate);
 
   // เช็คชื่อทั่วไป (ตำแหน่งที่ไม่ผูกกีฬา) = checkin ที่ matchId เป็นค่าว่าง "ของวันที่เลือกไว้" โดยเฉพาะ
   const dateGeneralCheckin = (studentId) =>
@@ -345,6 +349,13 @@ export default function UserCheckin({
             </button>
           </div>
         )}
+        {!isEventDay && (
+          <div className="px-4 py-2 border-t border-red-500/20 bg-red-500/5">
+            <span className="text-[11px] font-semibold text-red-500 dark:text-red-400">
+              {dateLabel} ไม่ใช่วันจัดกิจกรรม จึงเช็คชื่อไม่ได้ — เลือกวันที่อื่นที่มีกิจกรรม
+            </span>
+          </div>
+        )}
       </div>
 
       {/* บอกชัดๆ ว่ากำลังเช็คชื่อกิจกรรม/กีฬาไหนอยู่ (ตัวใหญ่ อ่านง่าย) แยกจากประโยคบอกสิทธิ์ด้านล่างซึ่งเป็นคนละเรื่อง
@@ -387,7 +398,9 @@ export default function UserCheckin({
           </button>
           <button
             onClick={() => setScannerOpen(true)}
-            className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
+            disabled={!isEventDay}
+            title={!isEventDay ? `${dateLabel} ไม่ใช่วันจัดกิจกรรม เช็คชื่อไม่ได้` : undefined}
+            className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-600 disabled:bg-slate-300 dark:disabled:bg-slate-700 disabled:cursor-not-allowed text-white text-xs font-semibold px-3.5 py-2 hover:bg-indigo-700"
           >
             <QrCode size={14} /> สแกน QR เพื่อเช็คชื่อ
           </button>
@@ -546,12 +559,18 @@ export default function UserCheckin({
                   <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
                     <button
                       onClick={() => setPendingCheckin({ studentId: t.id, matchId: match?.id ?? null, name: t.name, sport: match?.sport })}
-                      disabled={isPresent || isAbsent}
-                      title={match ? `${formatThaiDate(match.date)} · ${formatShortTime(match.time)} · ${match.venue}` : undefined}
+                      disabled={isPresent || isAbsent || !isEventDay}
+                      title={
+                        !isEventDay
+                          ? `${dateLabel} ไม่ใช่วันจัดกิจกรรม เช็คชื่อไม่ได้`
+                          : match
+                          ? `${formatThaiDate(match.date)} · ${formatShortTime(match.time)} · ${match.venue}`
+                          : undefined
+                      }
                       className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isPresent
                           ? "bg-emerald-500/15 text-emerald-400 cursor-default"
-                          : isAbsent
+                          : isAbsent || !isEventDay
                           ? "bg-slate-100 dark:bg-slate-800 text-slate-600 cursor-not-allowed"
                           : "bg-indigo-600 text-white hover:bg-indigo-700"
                       }`}
@@ -560,12 +579,18 @@ export default function UserCheckin({
                     </button>
                     <button
                       onClick={() => setPendingAbsent({ studentId: t.id, name: t.name, matchId: match?.id ?? null })}
-                      disabled={isPresent || isAbsent}
-                      title={match ? `${formatThaiDate(match.date)} · ${formatShortTime(match.time)} · ${match.venue}` : undefined}
+                      disabled={isPresent || isAbsent || !isEventDay}
+                      title={
+                        !isEventDay
+                          ? `${dateLabel} ไม่ใช่วันจัดกิจกรรม เช็คชื่อไม่ได้`
+                          : match
+                          ? `${formatThaiDate(match.date)} · ${formatShortTime(match.time)} · ${match.venue}`
+                          : undefined
+                      }
                       className={`flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition ${
                         isAbsent
                           ? "bg-red-500/15 text-red-400 cursor-default"
-                          : isPresent
+                          : isPresent || !isEventDay
                           ? "bg-slate-100 dark:bg-slate-800 text-slate-600 cursor-not-allowed"
                           : "bg-white dark:bg-slate-900 text-red-400 border border-red-900/50 hover:bg-red-500/10"
                       }`}
