@@ -279,7 +279,7 @@ export default function App() {
           {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} news={news} roles={roles} />}
           {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} roles={roles} eventDays={eventDays} checkerUnreadCount={checkerUnreadCount} />}
           {activeTab === "schedule" && <MatchSchedule matches={matches} students={students} />}
-          {activeTab === "history" && <UserHistory student={student} matches={matches} checkins={checkins} eventDays={eventDays} />}
+          {activeTab === "history" && <UserHistory student={student} matches={matches} checkins={checkins} eventDays={eventDays} checkinConfirmations={checkinConfirmations} />}
           {activeTab === "roles" && student.canCheckin && (
             <TeamRoles student={student} students={students} setStudents={setStudents} roles={roles} />
           )}

@@ -29,9 +29,12 @@ function pad2(n) {
 
 // แท็บ "ประวัติของฉัน" — สรุปการเข้าร่วมกิจกรรมทั้งหมดของนักศึกษาที่ล็อกอินอยู่: กราฟโดนัท + แถบกราฟ
 // แยกตามกิจกรรมทางซ้าย, ปฏิทินรายเดือนทางขวา (สีเขียว=มา, แดง=ขาด, ฟ้า=วันจัดกิจกรรมที่ยังไม่ถึง,
-// เทาจาง=ไม่ใช่วันจัดกิจกรรม), และรายการเช็คชื่อทั้งหมดด้านล่าง กดวันในปฏิทิน/แถวรายการเปิดดู
-// ข้อความคุยกับผู้เช็คชื่อของวันนั้นได้ (AttendanceThreadModal)
-export default function UserHistory({ student, matches, checkins, eventDays }) {
+// ม่วง=รอผู้เช็คชื่อยืนยันข้อมูล, เทาจาง=ไม่ใช่วันจัดกิจกรรม), และรายการเช็คชื่อทั้งหมดด้านล่าง กดวันในปฏิทิน/
+// แถวรายการเปิดดูข้อความคุยกับผู้เช็คชื่อของวันนั้นได้ (AttendanceThreadModal)
+// ข้อมูลเช็คชื่อของวันไหนจะยังไม่ขึ้นในหน้านี้เลย (ทั้งปฏิทินและรายละเอียด) จนกว่าผู้เช็คชื่อจะกด "ยืนยันข้อมูล
+// ทั้งหมด" ของสี+ตำแหน่ง+วันนั้นในหน้าเช็คชื่อกิจกรรมก่อน (checkinConfirmations) กันไม่ให้เห็นสถานะเช็คชื่อ
+// ที่ยังไม่ตรวจทานสมบูรณ์ ก่อนจะกลายเป็นข้อมูลจริงในประวัติ
+export default function UserHistory({ student, matches, checkins, eventDays, checkinConfirmations = [] }) {
   const [openDate, setOpenDate] = useState(null);
 
   const now = new Date();
@@ -48,8 +51,20 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
   };
   useEffect(loadMessageDates, [student.id]);
 
+  // วันที่ที่ผู้เช็คชื่อยืนยันข้อมูลของสี+ตำแหน่งตัวเองแล้ว (เทียบแค่สี+ตำแหน่งปัจจุบันของเจ้าตัว เพราะเช็คชื่อ
+  // ทุกครั้งของนักศึกษาคนนี้ผูกกับตำแหน่งของตัวเองอยู่แล้วเสมอ)
+  const confirmedDates = useMemo(
+    () =>
+      new Set(
+        checkinConfirmations
+          .filter((c) => c.team === student.team && c.role === student.role)
+          .map((c) => c.date)
+      ),
+    [checkinConfirmations, student.team, student.role]
+  );
+
   const mine = checkins
-    .filter((c) => c.studentId === student.id)
+    .filter((c) => c.studentId === student.id && confirmedDates.has(c.date))
     .map((c) => ({ ...c, match: matches.find((m) => m.id === c.matchId) }));
 
   // แยกวันที่ "มา" กับ "ขาด" (เช็คขาดโดยผู้มีสิทธิ์เช็คชื่อ) ออกจากกัน
@@ -85,11 +100,17 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
         upcoming += 1; // ยังไม่ถึงวัน ยังไม่ตัดสินว่ามา/ขาด
         return;
       }
+      // ผู้เช็คชื่อยังไม่ยืนยันข้อมูลของวันนี้ (สี+ตำแหน่งเดียวกับตัวเอง) เลยยังตัดสินมา/ขาดไม่ได้เหมือนกัน —
+      // นับรวมไปกับ "ยังไม่เริ่ม" ก่อน (ปฏิทินด้านล่างมีสีแยกต่างหากให้ชัดกว่านี้ว่าเป็นคนละกรณีกับวันในอนาคต)
+      if (!confirmedDates.has(d.date)) {
+        upcoming += 1;
+        return;
+      }
       if (presentDates.has(d.date)) present += 1;
       else absent += 1;
     });
     return { presentCount: present, absentCount: absent, upcomingCount: upcoming };
-  }, [eventDays, presentDates, today]);
+  }, [eventDays, presentDates, confirmedDates, today]);
 
   const eventDateSet = useMemo(() => {
     const map = new Map();
@@ -170,6 +191,9 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
                 const isToday = iso === today;
 
                 const isUpcoming = isEventDay && iso > today; // วันจัดกิจกรรมที่ยังไม่ถึง ยังตัดสินมา/ขาดไม่ได้
+                // วันจัดกิจกรรมที่ผ่านไปแล้ว (หรือคือวันนี้) แต่ผู้เช็คชื่อยังไม่กด "ยืนยันข้อมูลทั้งหมด" ของสี+
+                // ตำแหน่งตัวเองสำหรับวันนี้ — ต้องแยกจาก isUpcoming เพราะวันนี้ผ่านไปแล้วจริงๆ ไม่ใช่ "ยังไม่ถึง"
+                const isPendingConfirm = isEventDay && !isUpcoming && !confirmedDates.has(iso);
 
                 let cls = "text-slate-600"; // ไม่ใช่วันจัดกิจกรรมและไม่มีประวัติ
                 if (absent) {
@@ -178,6 +202,8 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
                   cls = "bg-emerald-500 text-white font-semibold";
                 } else if (isUpcoming) {
                   cls = "bg-sky-500/15 text-sky-400 font-semibold"; // วันจัดกิจกรรมที่ยังไม่เริ่ม
+                } else if (isPendingConfirm) {
+                  cls = "bg-violet-500/15 text-violet-400 font-semibold"; // รอผู้เช็คชื่อยืนยันข้อมูลของวันนี้
                 } else if (isEventDay) {
                   cls = "bg-red-500/15 text-red-400 font-semibold"; // วันจัดกิจกรรมที่ผ่านไปแล้วแต่ยังไม่มีการเช็คชื่อ
                 }
@@ -189,8 +215,17 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
                     disabled={!clickable}
                     onClick={() => clickable && setOpenDate(iso)}
                     title={
-                      (absent ? "เช็คขาด (กดดูข้อความ)" : present ? "มาเข้าร่วม (กดดูข้อความ)" : isUpcoming ? "ยังไม่เริ่มกิจกรรม" : isEventDay ? "ไม่มา" : "") +
-                      (hasMessage ? " · มีข้อความ" : "")
+                      (absent
+                        ? "เช็คขาด (กดดูข้อความ)"
+                        : present
+                        ? "มาเข้าร่วม (กดดูข้อความ)"
+                        : isUpcoming
+                        ? "ยังไม่เริ่มกิจกรรม"
+                        : isPendingConfirm
+                        ? "รอผู้เช็คชื่อยืนยันข้อมูล"
+                        : isEventDay
+                        ? "ไม่มา"
+                        : "") + (hasMessage ? " · มีข้อความ" : "")
                     }
                     className={`relative h-full min-h-8 flex items-center justify-center rounded-md text-xs ${cls} ${
                       clickable ? "cursor-pointer hover:ring-2 hover:ring-indigo-400" : "cursor-default"
@@ -211,6 +246,7 @@ export default function UserHistory({ student, matches, checkins, eventDays }) {
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-emerald-500 inline-block" /> มาเข้าร่วม</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-red-500/15 inline-block" /> ไม่มา / เช็คขาด</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-sky-500/15 inline-block" /> ยังไม่เริ่มกิจกรรม</span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded bg-violet-500/15 inline-block" /> รอผู้เช็คชื่อยืนยันข้อมูล</span>
               <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded border border-slate-300 dark:border-slate-700 inline-block" /> ไม่ใช่วันจัดกิจกรรม</span>
               <span className="flex items-center gap-1">
                 <span className="relative w-2.5 h-2.5 rounded bg-slate-300 dark:bg-slate-700 inline-block">
