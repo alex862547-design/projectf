@@ -49,8 +49,9 @@ function MatchCard({ match }) {
 }
 
 // สรุปตารางการแข่งขันทั้งหมด แยกเป็นกลุ่มตามวันที่ กดหัวข้อวันที่เพื่อกาง/พับดูรายการของวันนั้นได้ (เปิดวันแรก
-// ไว้ให้ก่อนโดยอัตโนมัติ) ต่อท้ายกราฟอันดับคะแนนในหน้า "หน้าหลัก" ให้เห็นภาพรวมทั้งหมดโดยไม่ต้องสลับไปหน้า
-// "ตารางแข่งขัน" (ซึ่งแบ่งดูทีละกีฬาแบบสาย bracket แทน)
+// ไว้ให้ก่อนโดยอัตโนมัติ) เปิดได้พร้อมกันหลายวัน — กดวันอื่นเพิ่มไม่ทำให้วันที่เปิดไว้ก่อนหน้าพับกลับไป
+// ต่อท้ายกราฟอันดับคะแนนในหน้า "หน้าหลัก" ให้เห็นภาพรวมทั้งหมดโดยไม่ต้องสลับไปหน้า "ตารางแข่งขัน"
+// (ซึ่งแบ่งดูทีละกีฬาแบบสาย bracket แทน)
 export default function MatchesTimeline({ matches }) {
   const groups = useMemo(() => {
     const map = new Map();
@@ -63,7 +64,14 @@ export default function MatchesTimeline({ matches }) {
       .sort((a, b) => a.date.localeCompare(b.date));
   }, [matches]);
 
-  const [expandedDate, setExpandedDate] = useState(groups[0]?.date || null);
+  const [expandedDates, setExpandedDates] = useState(() => new Set(groups[0] ? [groups[0].date] : []));
+  const toggleDate = (date) =>
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
 
   if (groups.length === 0) return null;
 
@@ -78,11 +86,11 @@ export default function MatchesTimeline({ matches }) {
 
       <div className="divide-y divide-slate-200 dark:divide-slate-800">
         {groups.map((g, i) => {
-          const isOpen = expandedDate === g.date;
+          const isOpen = expandedDates.has(g.date);
           return (
             <div key={g.date}>
               <button
-                onClick={() => setExpandedDate((prev) => (prev === g.date ? null : g.date))}
+                onClick={() => toggleDate(g.date)}
                 className="w-full flex items-center gap-3 px-5 py-3.5 text-left hover:bg-slate-50 dark:hover:bg-slate-800/40 transition"
               >
                 <span className="w-9 h-9 rounded-lg bg-indigo-500/15 text-indigo-400 flex items-center justify-center text-sm font-bold shrink-0">
