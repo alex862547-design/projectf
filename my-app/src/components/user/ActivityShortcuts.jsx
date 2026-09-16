@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { X, Users as UsersIcon, Calendar, Trophy } from "lucide-react";
 import Badge from "../common/Badge";
 import { api } from "../../api";
@@ -10,6 +10,7 @@ import { formatThaiDate, extractSportFromRole as extractSport, normalizeSportNam
 export default function ActivityShortcuts({ students, roles }) {
   const [matches, setMatches] = useState([]);
   const [selectedRole, setSelectedRole] = useState(null); // ตำแหน่ง/กิจกรรมที่กำลังเปิดดูรายละเอียด (ค่าดิบตรงตาม role)
+  const studentsSectionRef = useRef(null); // ใช้เลื่อนลงไปหารายชื่อนักศึกษาด้านล่างตอนกดการ์ดแมตช์
 
   // ดึงรายการแข่งขันเองแยกต่างหาก ทุก 4 วินาที เพื่อให้ปุ่มลัดชุดนี้อัปเดตแบบเรียลไทม์
   // (ไม่ใช้ matches ที่ App.jsx โหลดตอนแรก เพราะตัวนั้นตั้งใจไม่รีเฟรชอัตโนมัติ
@@ -95,7 +96,11 @@ export default function ActivityShortcuts({ students, roles }) {
                   {activeMatches.length === 0 && <div className="text-xs text-slate-500">ไม่มีรายการแข่งขัน</div>}
                   <div className="space-y-2">
                     {activeMatches.map((m) => (
-                      <div key={m.id} className="rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2.5">
+                      <button
+                        key={m.id}
+                        onClick={() => studentsSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })}
+                        className="w-full rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-2.5 text-left hover:border-indigo-300 dark:hover:border-indigo-500/40 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition"
+                      >
                         <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5">
                           <span>{formatThaiDate(m.date)} · {m.time}</span>
                           <span>{m.venue}</span>
@@ -108,13 +113,13 @@ export default function ActivityShortcuts({ students, roles }) {
                           <Badge team={m.teamB} />
                         </div>
                         {m.note && <div className="mt-1.5 text-xs text-slate-400 italic text-center">{m.note}</div>}
-                      </div>
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div>
+              <div ref={studentsSectionRef} className="scroll-mt-1">
                 <div className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
                   <UsersIcon size={13} /> นักศึกษาในกิจกรรมนี้ ({activeStudents.length} คน)
                 </div>
