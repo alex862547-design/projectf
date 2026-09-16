@@ -97,6 +97,34 @@ export default function AdminReports({ students, matches, checkins, eventDays })
     });
   }, [sortedStudents, checkins, eventDays, today]);
 
+  // ประวัติการเข้าร่วมกิจกรรมแบบละเอียด (ทุกครั้งที่เช็คชื่อ/เช็คขาดของทุกคน) เรียงตามคนก่อน (ตามลำดับชั้นปี
+  // เดียวกับตารางอื่นๆ) แล้วเรียงตามวันที่ภายในคนเดียวกันอีกที ให้อ่านประวัติของแต่ละคนต่อกันเป็นชุดง่ายๆ
+  const historyRows = useMemo(() => {
+    const rows = [];
+    sortedStudents.forEach((s) => {
+      const mine = [...(checkins || [])].filter((c) => c.studentId === s.id).sort((a, b) => a.date.localeCompare(b.date));
+      mine.forEach((c) => {
+        rows.push({
+          รหัส: s.id,
+          ชื่อ: s.name,
+          ทีม: teamById(s.team).name,
+          ตำแหน่ง: s.role || "",
+          วันที่: formatThaiDate(c.date),
+          สถานะ: c.status === "absent" ? "เช็คขาด" : "มาเข้าร่วม",
+          เวลาที่เช็ค: c.status === "absent" ? "" : (c.time || "").slice(0, 5),
+          ผู้เช็คชื่อ: c.checkedBy ? `${c.checkedBy.name}${c.checkedBy.code ? ` (${c.checkedBy.code})` : ""}` : "",
+        });
+      });
+    });
+    return rows;
+  }, [sortedStudents, checkins]);
+
+  // ประวัติละเอียดมีเป็นหมื่นแถว (นักศึกษา x วันจัดกิจกรรมทุกวัน) เกินกว่าจะแสดงบนหน้าเว็บ/พิมพ์/ใส่ใน Word
+  // ได้ทั้งหมดโดยไม่หน่วง จึงโชว์แค่ตัวอย่าง N แถวแรกในหน้าเว็บ/Word/พิมพ์ ส่วนไฟล์ Excel ยังคงมีข้อมูลครบทุกแถว
+  // (Excel รองรับข้อมูลจำนวนมากและใช้กรอง/เรียงข้อมูลเพิ่มเองได้อยู่แล้ว)
+  const HISTORY_PREVIEW_LIMIT = 300;
+  const historyRowsPreview = useMemo(() => historyRows.slice(0, HISTORY_PREVIEW_LIMIT), [historyRows]);
+
   const studentRows = useMemo(
     () =>
       sortedStudents.map((s) => ({
@@ -119,6 +147,7 @@ export default function AdminReports({ students, matches, checkins, eventDays })
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(standingsRows), "อันดับคะแนนรวม");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(matchRows), "ตารางการแข่งขัน");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(attendanceRows), "สรุปการเช็คชื่อ");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(historyRows), "ประวัติการเข้าร่วมกิจกรรม");
     XLSX.writeFile(wb, `รายงานกีฬาสี ${formatThaiDate(today)}.xlsx`);
   };
 
@@ -136,7 +165,13 @@ export default function AdminReports({ students, matches, checkins, eventDays })
       ${tableToHtml("รายชื่อนักศึกษา", studentRows)}
       ${tableToHtml("อันดับคะแนนรวม", standingsRows)}
       ${tableToHtml("ตารางการแข่งขัน", matchRows)}
-      ${tableToHtml("สรุปการเช็คชื่อ", attendanceRows)}`;
+      ${tableToHtml("สรุปการเช็คชื่อ", attendanceRows)}
+      ${tableToHtml("ประวัติการเข้าร่วมกิจกรรม", historyRowsPreview)}
+      ${
+        historyRows.length > HISTORY_PREVIEW_LIMIT
+          ? `<p>แสดงตัวอย่าง ${HISTORY_PREVIEW_LIMIT} รายการแรกจากทั้งหมด ${historyRows.length} รายการ — ดูข้อมูลครบถ้วนได้ในไฟล์ Excel ที่ส่งออก</p>`
+          : ""
+      }`;
     downloadAsWord(title, body);
   };
 
@@ -147,6 +182,14 @@ export default function AdminReports({ students, matches, checkins, eventDays })
     { title: "อันดับคะแนนรวม", rows: standingsRows },
     { title: "ตารางการแข่งขัน", rows: matchRows },
     { title: "สรุปการเช็คชื่อ", rows: attendanceRows },
+    {
+      title: "ประวัติการเข้าร่วมกิจกรรม",
+      rows: historyRowsPreview,
+      note:
+        historyRows.length > HISTORY_PREVIEW_LIMIT
+          ? `แสดงตัวอย่าง ${HISTORY_PREVIEW_LIMIT} รายการแรกจากทั้งหมด ${historyRows.length} รายการ (ข้อมูลนี้มีจำนวนมาก แสดงทั้งหมดได้ไม่ไหว) — ดูข้อมูลครบถ้วนได้ในไฟล์ Excel ที่ส่งออก`
+          : null,
+    },
   ];
 
   return (
@@ -206,6 +249,9 @@ export default function AdminReports({ students, matches, checkins, eventDays })
                 </table>
               )}
             </div>
+            {sec.note && (
+              <div className="px-5 py-2.5 border-t border-slate-200 dark:border-slate-800 text-[11px] text-slate-400">{sec.note}</div>
+            )}
           </Card>
         ))}
       </div>
