@@ -276,7 +276,7 @@ export default function App() {
             subtitle={`${student.name} · รหัสนักศึกษา ${student.id} · ${student.role}`}
             badge={<Badge team={student.team} />}
           />
-          {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} news={news} roles={roles} />}
+          {activeTab === "home" && <UserHome student={student} students={students} matches={matches} checkins={checkins} news={news} roles={roles} onGoToHistory={() => setActiveTab("history")} />}
           {activeTab === "checkin" && <UserCheckin student={student} students={students} matches={matches} checkins={checkins} setCheckins={setCheckins} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} roles={roles} eventDays={eventDays} checkerUnreadCount={checkerUnreadCount} />}
           {activeTab === "schedule" && <MatchSchedule matches={matches} students={students} />}
           {activeTab === "history" && <UserHistory student={student} matches={matches} checkins={checkins} eventDays={eventDays} checkinConfirmations={checkinConfirmations} />}
