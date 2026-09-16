@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from "react";
-import { CalendarRange, ChevronDown, MapPin, Clock, Trophy, Crown } from "lucide-react";
+import { CalendarRange, ChevronDown, MapPin, Clock, Trophy, Crown, X, Users as UsersIcon } from "lucide-react";
 import Card from "../common/Card";
 import Badge from "../common/Badge";
 import StatusPill from "../common/StatusPill";
-import { formatThaiFullDate, formatShortTime } from "../../utils/helpers";
+import { formatThaiFullDate, formatShortTime, extractSportFromRole, normalizeSportName, sortStudentsByYear } from "../../utils/helpers";
 
 // การ์ดแมตช์เดียว — ทีมเอ vs ทีมบี พร้อมคะแนน (โชว์คะแนนจริงเฉพาะที่จบแล้ว), มงกุฎให้ทีมที่ชนะ,
-// แถบสถานะ, และรายละเอียดเวลา/สนามด้านล่าง
-function MatchCard({ match }) {
+// แถบสถานะ, และรายละเอียดเวลา/สนามด้านล่าง — กดชื่อทีมเปิดดูรายชื่อนักกีฬาที่แข่งกีฬานี้ของทีมนั้นได้ (onSelectTeam)
+function MatchCard({ match, onSelectTeam }) {
   const done = match.status === "จบการแข่งขัน";
   const winnerSide = done && match.scoreA !== match.scoreB ? (match.scoreA > match.scoreB ? "A" : "B") : null;
 
@@ -25,17 +25,23 @@ function MatchCard({ match }) {
 
       <div className="px-4 py-3 space-y-2">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 min-w-0">
+          <button
+            onClick={() => onSelectTeam(match.teamA, match.sport)}
+            className="flex items-center gap-1.5 min-w-0 hover:opacity-70 transition"
+          >
             {winnerSide === "A" && <Crown size={13} className="text-amber-400 shrink-0" />}
             <Badge team={match.teamA} />
-          </span>
+          </button>
           <span className="text-lg font-bold text-slate-900 dark:text-slate-100 shrink-0">{done ? match.scoreA : "-"}</span>
         </div>
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 min-w-0">
+          <button
+            onClick={() => onSelectTeam(match.teamB, match.sport)}
+            className="flex items-center gap-1.5 min-w-0 hover:opacity-70 transition"
+          >
             {winnerSide === "B" && <Crown size={13} className="text-amber-400 shrink-0" />}
             <Badge team={match.teamB} />
-          </span>
+          </button>
           <span className="text-lg font-bold text-slate-900 dark:text-slate-100 shrink-0">{done ? match.scoreB : "-"}</span>
         </div>
       </div>
@@ -52,7 +58,7 @@ function MatchCard({ match }) {
 // ไว้ให้ก่อนโดยอัตโนมัติ) เปิดได้พร้อมกันหลายวัน — กดวันอื่นเพิ่มไม่ทำให้วันที่เปิดไว้ก่อนหน้าพับกลับไป
 // ต่อท้ายกราฟอันดับคะแนนในหน้า "หน้าหลัก" ให้เห็นภาพรวมทั้งหมดโดยไม่ต้องสลับไปหน้า "ตารางแข่งขัน"
 // (ซึ่งแบ่งดูทีละกีฬาแบบสาย bracket แทน)
-export default function MatchesTimeline({ matches }) {
+export default function MatchesTimeline({ matches, students }) {
   const groups = useMemo(() => {
     const map = new Map();
     (matches || []).forEach((m) => {
@@ -72,6 +78,19 @@ export default function MatchesTimeline({ matches }) {
       else next.add(date);
       return next;
     });
+
+  // ทีม+กีฬาที่กำลังเปิดดูรายชื่อนักกีฬาอยู่ (null = ไม่ได้เปิด) — เก็บคู่กันเพราะแต่ละการ์ดในตารางนี้เป็นคนละกีฬากัน
+  // ไม่มี "กีฬาที่กำลังเลือกอยู่" แบบ MatchSchedule.jsx ที่มีแท็บเลือกกีฬาเดียวตายตัว
+  const [viewRoster, setViewRoster] = useState(null); // { team, sport } | null
+  const rosterStudents = viewRoster
+    ? sortStudentsByYear(
+        (students || []).filter(
+          (s) =>
+            s.team === viewRoster.team &&
+            normalizeSportName(extractSportFromRole(s.role)) === normalizeSportName(viewRoster.sport)
+        )
+      )
+    : [];
 
   if (groups.length === 0) return null;
 
@@ -107,7 +126,7 @@ export default function MatchesTimeline({ matches }) {
               {isOpen && (
                 <div className="px-5 pb-4 grid sm:grid-cols-2 gap-3">
                   {g.items.map((m) => (
-                    <MatchCard key={m.id} match={m} />
+                    <MatchCard key={m.id} match={m} onSelectTeam={(team, sport) => setViewRoster({ team, sport })} />
                   ))}
                 </div>
               )}
@@ -115,6 +134,52 @@ export default function MatchesTimeline({ matches }) {
           );
         })}
       </div>
+
+      {viewRoster && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4"
+          onClick={() => setViewRoster(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl w-full max-w-md flex flex-col max-h-[80vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+              <div className="flex items-center gap-2">
+                <Badge team={viewRoster.team} />
+                <span className="text-sm font-bold text-slate-900 dark:text-slate-100" style={{ fontFamily: "Kanit, sans-serif" }}>
+                  {viewRoster.sport}
+                </span>
+              </div>
+              <button
+                onClick={() => setViewRoster(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-800 dark:hover:text-slate-200"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4">
+              <div className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-1.5">
+                <UsersIcon size={13} /> นักกีฬาในทีมนี้ ({rosterStudents.length} คน)
+              </div>
+              {rosterStudents.length === 0 && (
+                <div className="text-xs text-slate-500">ยังไม่มีนักกีฬาในตำแหน่งนี้</div>
+              )}
+              <div className="space-y-2">
+                {rosterStudents.map((s) => (
+                  <div key={s.id} className="flex items-center justify-between gap-2 text-sm">
+                    <div className="min-w-0">
+                      <div className="text-slate-700 dark:text-slate-300 font-medium truncate">{s.name}</div>
+                      <div className="text-[11px] text-slate-400">รหัส {s.id} · {s.year || "ไม่ระบุชั้นปี"}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }
