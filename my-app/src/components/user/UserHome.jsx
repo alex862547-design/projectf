@@ -3,6 +3,7 @@ import { Newspaper, Palette, Briefcase, CheckCircle2, X, ChevronRight } from "lu
 import Card from "../common/Card";
 import Badge from "../common/Badge";
 import Standings from "../Standings";
+import MatchesTimeline from "./MatchesTimeline";
 import ActivityShortcuts from "./ActivityShortcuts";
 import TodaySummary from "./TodaySummary";
 import { formatThaiDate, sortStudentsByYear } from "../../utils/helpers";
@@ -144,6 +145,8 @@ export default function UserHome({ student, students, matches, checkins, news, r
       </div>
 
       <Standings matches={matches} />
+
+      <MatchesTimeline matches={matches} />
 
       <div id="news-section" className="scroll-mt-4">
         <Card className="p-0 overflow-hidden">
