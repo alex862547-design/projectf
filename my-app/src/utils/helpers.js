@@ -32,6 +32,17 @@ export function formatShortTime(time) {
   return match ? match[1] : time;
 }
 
+// แปลง timestamp เต็ม (เช่น edited_at จาก DB) ให้เป็น "D/M/YYYY HH:MM" แบบไทย ใช้โชว์ "แก้ไขเมื่อ" ในประวัติ
+export function formatThaiDateTime(isoString) {
+  if (!isoString) return isoString;
+  const d = new Date(isoString);
+  if (Number.isNaN(d.getTime())) return isoString;
+  const date = formatThaiDate(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  return `${date} ${hh}:${mm}`;
+}
+
 const THAI_WEEKDAYS = ["อาทิตย์", "จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์"];
 const THAI_MONTHS_FULL = [
   "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",

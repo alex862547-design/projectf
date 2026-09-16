@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Clock, MessageCircle, PieChart, ChevronLeft, ChevronRight } from "lucide-react";
+import { CalendarDays, Clock, MessageCircle, PieChart, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import Card from "../common/Card";
 import AttendanceThreadModal from "../common/AttendanceThreadModal";
 import AttendanceDonut from "../common/AttendanceDonut";
 import AttendanceBarChart from "./AttendanceBarChart";
 import { api } from "../../api";
-import { formatThaiDate } from "../../utils/helpers";
+import { formatThaiDate, formatThaiDateTime } from "../../utils/helpers";
 
 const WEEKDAYS = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
 const THAI_MONTHS = [
@@ -65,7 +65,8 @@ export default function UserHistory({ student, matches, checkins, eventDays, che
 
   const mine = checkins
     .filter((c) => c.studentId === student.id && confirmedDates.has(c.date))
-    .map((c) => ({ ...c, match: matches.find((m) => m.id === c.matchId) }));
+    .map((c) => ({ ...c, match: matches.find((m) => m.id === c.matchId) }))
+    .sort((a, b) => b.date.localeCompare(a.date)); // ล่าสุดขึ้นก่อน
 
   // แยกวันที่ "มา" กับ "ขาด" (เช็คขาดโดยผู้มีสิทธิ์เช็คชื่อ) ออกจากกัน
   const presentDates = useMemo(
@@ -274,8 +275,13 @@ export default function UserHistory({ student, matches, checkins, eventDays, che
               <div>
                 <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">{c.match ? c.match.sport : (student.role || "เช็คชื่อทั่วไป")}</div>
                 <div className="text-xs text-slate-400 mt-0.5">{formatThaiDate(c.date)}</div>
+                {c.editedAt && (
+                  <div className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
+                    <Pencil size={10} className="shrink-0" /> มีการเปลี่ยนแปลง · แก้ไขเมื่อ {formatThaiDateTime(c.editedAt)}
+                  </div>
+                )}
               </div>
-              <div className={`text-xs font-semibold ${c.status === "absent" ? "text-red-400" : "text-emerald-400"}`}>
+              <div className={`text-xs font-semibold shrink-0 ml-3 ${c.status === "absent" ? "text-red-400" : "text-emerald-400"}`}>
                 {c.status === "absent" ? "เช็คขาด" : `เช็คชื่อเวลา ${c.time}`}
               </div>
             </button>
