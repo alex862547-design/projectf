@@ -1,17 +1,15 @@
 import React, { useMemo } from "react";
 import { BarChart3 } from "lucide-react";
-import { normalizeSportName } from "../../utils/helpers";
 
 function pad2(n) {
   return String(n).padStart(2, "0");
 }
 
-// จัดกลุ่มประวัติเช็คชื่อ (mine) ตามชนิดกีฬา แล้วนับจำนวนครั้งที่มา/ขาดแยกกัน พร้อมคำนวณ "ทั้งหมด" ของแต่ละ
-// กิจกรรมไว้เทียบเป็นสัดส่วน (เช่น "1/30 ครั้ง") — เช็คชื่อที่ไม่ผูกกับตารางแข่งขัน (match) จะนับรวมไว้ใน
-// กิจกรรม/ตำแหน่งที่นักศึกษาสังกัดอยู่ปัจจุบัน
-// "ทั้งหมด" ของกิจกรรมที่ผูกกับกีฬา = จำนวนนัดแข่งขันของกีฬานั้นที่ผ่านมาแล้ว (หรือคือวันนี้)
-// "ทั้งหมด" ของกิจกรรมทั่วไป (ไม่ผูกกีฬา) = จำนวนวันจัดกิจกรรมทั้งหมดที่ผ่านมาแล้ว (เพราะเช็คชื่อได้ทุกวันจัดกิจกรรม)
-function groupBySport(mine, currentRole, matches, eventDays, today) {
+// จัดกลุ่มประวัติเช็คชื่อ (mine) ตามชนิดกีฬา แล้วนับจำนวนครั้งที่มา/ขาดแยกกัน พร้อมคำนวณ "ทั้งหมด" ไว้เทียบ
+// เป็นสัดส่วน (เช่น "1/32 ครั้ง") — เช็คชื่อที่ไม่ผูกกับตารางแข่งขัน (match) จะนับรวมไว้ในกิจกรรม/ตำแหน่งที่
+// นักศึกษาสังกัดอยู่ปัจจุบัน "ทั้งหมด" ของทุกกิจกรรมใช้จำนวนวันจัดกิจกรรมทั้งหมดที่ผ่านมาแล้ว (หรือคือวันนี้)
+// เหมือนกันหมด ไม่ว่าจะผูกกับกีฬาหรือเป็นตำแหน่งทั่วไป (ไม่อิงจำนวนนัดแข่งขันของกีฬานั้นๆ)
+function groupBySport(mine, currentRole, eventDays, today) {
   const map = new Map();
   mine.forEach((c) => {
     const key = c.match ? c.match.sport : (currentRole || "เช็คชื่อทั่วไป");
@@ -21,27 +19,21 @@ function groupBySport(mine, currentRole, matches, eventDays, today) {
     else g.present += 1;
   });
 
-  const pastEventDayCount = (eventDays || []).filter((d) => d.date <= today).length;
+  const possible = (eventDays || []).filter((d) => d.date <= today).length;
 
   return [...map.entries()]
-    .map(([sport, v]) => {
-      const isSportTied = mine.some((c) => c.match && c.match.sport === sport);
-      const possible = isSportTied
-        ? (matches || []).filter((m) => normalizeSportName(m.sport) === normalizeSportName(sport) && m.date <= today).length
-        : pastEventDayCount;
-      return { sport, ...v, total: v.present + v.absent, possible: Math.max(possible, v.present + v.absent) };
-    })
+    .map(([sport, v]) => ({ sport, ...v, total: v.present + v.absent, possible: Math.max(possible, v.present + v.absent) }))
     .sort((a, b) => b.total - a.total);
 }
 
 // แถบกราฟ "เช็คชื่อแยกตามกิจกรรม" ต่อท้ายกราฟโดนัทในหน้า "ประวัติของฉัน" (UserHistory) — แจกแจงจำนวน
 // มา/ขาดของนักศึกษาคนนี้ แยกทีละกีฬา/ตำแหน่ง ไม่ใช่ตัวเลขรวมเหมือนโดนัท พร้อมบอกสัดส่วนจากทั้งหมดที่ควรเช็คได้
-export default function AttendanceBarChart({ mine, student, matches, eventDays }) {
+export default function AttendanceBarChart({ mine, student, eventDays }) {
   const today = useMemo(() => {
     const d = new Date();
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
   }, []);
-  const data = useMemo(() => groupBySport(mine, student?.role, matches, eventDays, today), [mine, student, matches, eventDays, today]);
+  const data = useMemo(() => groupBySport(mine, student?.role, eventDays, today), [mine, student, eventDays, today]);
   const max = Math.max(1, ...data.map((d) => d.possible));
 
   return (

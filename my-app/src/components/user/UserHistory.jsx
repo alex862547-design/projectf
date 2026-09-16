@@ -136,7 +136,7 @@ export default function UserHistory({ student, matches, checkins, eventDays, che
             <PieChart size={16} className="text-indigo-400" /> สรุปการเข้าร่วม
           </div>
           <AttendanceDonut present={presentCount} absent={absentCount} upcoming={upcomingCount} />
-          <AttendanceBarChart mine={mine} student={student} matches={matches} eventDays={eventDays} />
+          <AttendanceBarChart mine={mine} student={student} eventDays={eventDays} />
         </Card>
 
         <div className="flex-1 min-w-0">
