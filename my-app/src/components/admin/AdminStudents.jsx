@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, ShieldCheck, Shield, Tag, Palette, Check, X, Pencil, GraduationCap, ChevronDown, Search, UserPlus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Trash2, ShieldCheck, Shield, Tag, Palette, Check, X, Pencil, GraduationCap, ChevronDown, Search, UserPlus, ChevronLeft, ChevronRight, LayoutGrid, Trophy, Users as UsersIcon } from "lucide-react";
 import Card from "../common/Card";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { api } from "../../api";
+import { extractSportFromRole } from "../../utils/helpers";
 
 // ชื่อสีไทยที่รู้จัก -> โค้ดสีจริง (ใช้ตอนพิมพ์ชื่อสีทีมใหม่ จะได้เปลี่ยนสีให้ตรงกับชื่อโดยอัตโนมัติ)
 const THAI_COLOR_MAP = {
@@ -654,27 +655,29 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
         <button
           onClick={() => setSelectedRole("all")}
-          className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition ${
             selectedRole === "all"
               ? "bg-indigo-600 text-white"
               : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
           }`}
         >
-          ทุกตำแหน่ง
+          <LayoutGrid size={13} className={selectedRole === "all" ? "text-white" : "text-indigo-400"} /> ทุกตำแหน่ง
         </button>
         {roleOptions.map((r) => {
           const count = students.filter((s) => s.role === r).length;
+          const active = selectedRole === r;
+          const RoleIcon = extractSportFromRole(r) ? Trophy : UsersIcon;
           return (
             <button
               key={r}
               onClick={() => setSelectedRole((prev) => (prev === r ? "all" : r))}
-              className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition ${
-                selectedRole === r
+              className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition ${
+                active
                   ? "bg-indigo-600 text-white"
                   : "bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400"
               }`}
             >
-              {r} ({count})
+              <RoleIcon size={13} className={active ? "text-white" : "text-indigo-400"} /> {r} ({count})
             </button>
           );
         })}
