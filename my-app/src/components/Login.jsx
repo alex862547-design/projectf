@@ -72,7 +72,7 @@ export default function Login({ onLogin, onGuestView }) {
         <div className="bg-white p-10 md:p-14 flex flex-col justify-center">
           <h2 className="text-3xl font-bold text-slate-900 font-display">เข้าสู่ระบบ</h2>
           <p className="text-sm text-slate-500 mt-1">
-            นักศึกษาใช้รหัสนักศึกษาเป็นทั้งชื่อผู้ใช้และรหัสผ่านตั้งต้น
+            นักศึกษาใส่ usp ตามด้วยรหัสนักศึกษาเป็นชื่อผู้ใช้ ส่วนรหัสผ่านตั้งต้นคือรหัสนักศึกษา
           </p>
 
           <div className="mt-8 space-y-4">
@@ -82,7 +82,7 @@ export default function Login({ onLogin, onGuestView }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="เช่น รหัสนักศึกษา"
+                placeholder="เช่น usp16573"
                 className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </div>
