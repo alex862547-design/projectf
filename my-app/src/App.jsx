@@ -341,7 +341,7 @@ export default function App() {
           />
           {adminTab === "students" && <AdminStudents students={students} setStudents={setStudents} roles={roles} setRoles={setRoles} studentYears={studentYears} setStudentYears={setStudentYears} teams={teams} setTeams={setTeams} />}
           {adminTab === "matches" && <AdminMatches matches={matches} setMatches={setMatches} teams={teams} />}
-          {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} eventDays={eventDays} />}
+          {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} eventDays={eventDays} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} />}
           {adminTab === "news" && <AdminNews news={news} setNews={setNews} />}
           {adminTab === "eventdays" && <AdminEventDays eventDays={eventDays} setEventDays={setEventDays} />}
           {adminTab === "reports" && <AdminReports students={students} matches={matches} checkins={checkins} eventDays={eventDays} />}

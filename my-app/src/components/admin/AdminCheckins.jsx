@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState } from "react";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Search, Trophy, Users,
-  Pencil, Check, X, Trash2, Plus, RotateCcw, UserPlus, CheckCircle2, XCircle,
+  Pencil, Check, X, Trash2, Plus, RotateCcw, UserPlus, CheckCircle2, XCircle, ShieldCheck,
 } from "lucide-react";
 import Card from "../common/Card";
 import Badge from "../common/Badge";
@@ -21,7 +21,7 @@ function toIso(d) {
 // จัดกลุ่มตาม "ตำแหน่ง/ประเภทกิจกรรม" ทุกตำแหน่งที่มีในระบบ (เหมือนหน้าเช็คชื่อของนักศึกษา แต่แอดมินเห็นทุกสี
 // ทุกตำแหน่งพร้อมกัน ไม่ถูกจำกัดแค่สี/ตำแหน่งตัวเอง) แต่ละแถวถ้ายังไม่เช็คชื่อจะมีปุ่ม "เช็คชื่อ/เช็คขาด" กดเช็ค
 // ได้ทันทีเหมือนฝั่งนักศึกษา ถ้าเช็คไปแล้วจะแก้ไขสถานะ/เวลา หรือลบรายการที่บันทึกผิดได้เลย
-export default function AdminCheckins({ checkins, setCheckins, students, matches, roles, eventDays = [] }) {
+export default function AdminCheckins({ checkins, setCheckins, students, matches, roles, eventDays = [], checkinConfirmations = [], setCheckinConfirmations }) {
   const todayStr = toIso(new Date());
   const [selectedDate, setSelectedDate] = useState(todayStr);
   // เช็คชื่อได้แค่วันที่แอดมินตั้งไว้เป็น "วันจัดกิจกรรม" เท่านั้น — server บังคับเงื่อนไขเดียวกันนี้อยู่แล้วตอน
@@ -139,6 +139,7 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
       }));
       return {
         key: `role-${role}`,
+        role,
         label,
         subtitle,
         icon: sport ? Trophy : Users,
@@ -207,6 +208,29 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
       await api.deleteCheckin(id);
       setCheckins((prev) => prev.filter((c) => c.id !== id));
       setPendingDelete(null);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  // ยืนยัน/ยกเลิกยืนยันข้อมูลเช็คชื่อของสี+ตำแหน่ง+วันที่นี้ — เหมือนปุ่ม "ยืนยันข้อมูลทั้งหมด" ในหน้าเช็คชื่อ
+  // ของนักศึกษา (UserCheckin.jsx) แต่แอดมินเห็นทุกสีในตำแหน่งเดียวกันพร้อมกัน จึงต้องยืนยันทีละสีแยกกัน
+  // (checkin_confirmations ผูกกับ team+role+date คู่เดียว ไม่ใช่ role อย่างเดียว)
+  const confirmTeamGroup = async (team, role) => {
+    try {
+      const created = await api.confirmCheckinGroup(team, role, selectedDate);
+      setCheckinConfirmations((prev) => [...prev.filter((c) => c.id !== created.id), created]);
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const undoTeamGroup = async (confirmation) => {
+    try {
+      await api.deleteCheckinConfirmation(confirmation.id);
+      setCheckinConfirmations((prev) => prev.filter((c) => c.id !== confirmation.id));
       setError("");
     } catch (err) {
       setError(err.message);
@@ -495,6 +519,51 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
               <span className="ml-auto shrink-0 text-xs font-semibold text-slate-400">
                 เช็คแล้ว {checkedCount}/{g.rows.length} คน
               </span>
+            </div>
+
+            {/* สถานะ "ยืนยันข้อมูลทั้งหมด" แยกตามสี — checkin_confirmations ผูกกับ team+role+date คู่เดียว
+                แอดมินเห็นทุกสีในตำแหน่งเดียวกันพร้อมกัน จึงต้องมีแถบยืนยันแยกทีละสีในกลุ่มเดียวกันนี้ */}
+            <div className="divide-y divide-slate-200 dark:divide-slate-800/60 border-b border-slate-200 dark:border-slate-800/60">
+              {[...new Set(g.rows.map((r) => r.student.team))].map((team) => {
+                const teamRows = g.rows.filter((r) => r.student.team === team);
+                const present = teamRows.filter((r) => r.checkin && (r.checkin.status || "present") === "present").length;
+                const absent = teamRows.filter((r) => r.checkin && r.checkin.status === "absent").length;
+                const pending = teamRows.length - present - absent;
+                const confirmation = checkinConfirmations.find(
+                  (c) => c.team === team && c.role === g.role && c.date === selectedDate
+                );
+                return (
+                  <div key={team} className="flex items-center justify-between gap-3 px-5 py-2.5 flex-wrap">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <Badge team={team} />
+                      {confirmation ? (
+                        <span className="text-xs text-emerald-500">
+                          ยืนยันแล้ว โดย {confirmation.confirmedBy?.isAdmin ? "แอดมิน" : confirmation.confirmedBy?.name || "-"}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-slate-400">
+                          มา {present} · ขาด {absent} · ยังไม่เช็ค {pending} คน
+                        </span>
+                      )}
+                    </div>
+                    {confirmation ? (
+                      <button
+                        onClick={() => undoTeamGroup(confirmation)}
+                        className="flex items-center gap-1.5 shrink-0 rounded-lg bg-white dark:bg-slate-900 text-slate-500 border border-slate-200 dark:border-slate-800 text-xs font-semibold px-3 py-1.5 hover:border-red-400 hover:text-red-400"
+                      >
+                        <RotateCcw size={13} /> ยกเลิกยืนยัน
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => confirmTeamGroup(team, g.role)}
+                        className="flex items-center gap-1.5 shrink-0 rounded-lg bg-emerald-600 text-white text-xs font-semibold px-3 py-1.5 hover:bg-emerald-700"
+                      >
+                        <ShieldCheck size={13} /> ยืนยันข้อมูลทั้งหมด
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
 
             {totalPages > 1 && renderPager(g.key, page, totalPages, g.rows.length, "border-b border-slate-200 dark:border-slate-800/60")}
