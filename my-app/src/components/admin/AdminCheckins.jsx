@@ -40,6 +40,37 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
   const [selectedGroupKey, setSelectedGroupKey] = useState(null);
   const [viewingStudent, setViewingStudent] = useState(null); // กดชื่อนักศึกษาเพื่อดูประวัติ/สังกัด/ตำแหน่งแบบย่อ
 
+  // แบ่งหน้าละ 50 คนต่อกลุ่ม (เก็บเลขหน้าแยกตาม key ของแต่ละกลุ่ม) — กลุ่มอย่างกองเชียร์มีเป็นร้อยคน
+  // เรนเดอร์รวดเดียวจะยาวมาก ต้องเลื่อนลงสุดถึงจะสลับหน้าได้ จึงมีแถบเลื่อนหน้าไว้ทั้งบนและล่างของแต่ละกลุ่ม
+  const PAGE_SIZE = 50;
+  const [groupPages, setGroupPages] = useState({});
+  const renderPager = (key, page, totalPages, total, borderClass) => (
+    <div className={`flex items-center justify-between gap-3 flex-wrap px-5 py-2.5 text-xs text-slate-400 ${borderClass}`}>
+      <div>
+        แสดง {(page - 1) * PAGE_SIZE + 1}-{Math.min(page * PAGE_SIZE, total)} จาก {total} คน
+      </div>
+      <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => setGroupPages((prev) => ({ ...prev, [key]: Math.max(1, page - 1) }))}
+          disabled={page === 1}
+          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400 disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-600 disabled:cursor-not-allowed"
+        >
+          <ChevronLeft size={13} /> ก่อนหน้า
+        </button>
+        <span className="px-2 font-semibold text-slate-600 dark:text-slate-300">
+          หน้า {page} / {totalPages}
+        </span>
+        <button
+          onClick={() => setGroupPages((prev) => ({ ...prev, [key]: Math.min(totalPages, page + 1) }))}
+          disabled={page === totalPages}
+          className="flex items-center gap-1 rounded-lg px-2.5 py-1.5 font-semibold bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-indigo-500 hover:text-indigo-400 disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-600 disabled:cursor-not-allowed"
+        >
+          ถัดไป <ChevronRight size={13} />
+        </button>
+      </div>
+    </div>
+  );
+
   const [addOpen, setAddOpen] = useState(false);
   const [addStudentQuery, setAddStudentQuery] = useState("");
   const [addStudent, setAddStudent] = useState(null);
@@ -446,6 +477,9 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
       {(searchQ ? visibleGroups : visibleGroups.filter((g) => g.key === selectedGroupKey)).map((g) => {
         const Icon = g.icon;
         const checkedCount = g.rows.filter((r) => r.checkin).length;
+        const totalPages = Math.max(1, Math.ceil(g.rows.length / PAGE_SIZE));
+        const page = Math.min(groupPages[g.key] || 1, totalPages);
+        const pageRows = g.rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
         return (
           <Card key={g.key} className="p-0 overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-3.5 border-b border-slate-200 dark:border-slate-800/60 bg-slate-50/60 dark:bg-slate-800/30">
@@ -463,7 +497,9 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
               </span>
             </div>
 
-            {g.rows.map(({ checkin, student }) => {
+            {totalPages > 1 && renderPager(g.key, page, totalPages, g.rows.length, "border-b border-slate-200 dark:border-slate-800/60")}
+
+            {pageRows.map(({ checkin, student }) => {
               const isEditing = checkin && editingId === checkin.id;
               return (
                 <div key={student.id} className="flex items-center justify-between gap-3 px-5 py-3 border-b border-slate-200 dark:border-slate-800/60 last:border-0 flex-wrap">
@@ -563,6 +599,8 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
                 </div>
               );
             })}
+
+            {totalPages > 1 && renderPager(g.key, page, totalPages, g.rows.length, "border-t border-slate-200 dark:border-slate-800/60")}
           </Card>
         );
       })}
