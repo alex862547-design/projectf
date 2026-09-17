@@ -82,7 +82,7 @@ export default function Login({ onLogin, onGuestView }) {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 onKeyDown={onKeyDown}
-                placeholder="เช่น usp16573"
+                placeholder="เช่น usp00000"
                 className="mt-1 w-full rounded-lg border border-slate-200 px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </div>
