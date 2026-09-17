@@ -427,7 +427,7 @@ export default function UserCheckin({
             <div className="text-xs text-slate-400">ยังไม่มีตำแหน่งในระบบ</div>
           )}
 
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
             {roleList.map((role) => {
               const count = teammates.filter((t) => (t.role || "") === role).length;
               const sport = extractSport(role);

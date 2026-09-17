@@ -147,7 +147,7 @@ export default function AdminEventDays({ eventDays, setEventDays }) {
       </Card>
 
       {months.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
           <button
             onClick={() => setSelectedMonth("all")}
             className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition ${

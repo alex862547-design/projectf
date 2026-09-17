@@ -32,7 +32,7 @@ export default function MatchSchedule({ matches, students }) {
 
   return (
     <div className="px-4 md:px-8 pb-10 space-y-6">
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
         {sports.map((sport) => (
           <button
             key={sport}

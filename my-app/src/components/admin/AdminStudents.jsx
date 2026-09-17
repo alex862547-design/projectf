@@ -592,7 +592,7 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
         />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
         <button
           onClick={() => selectYearGroup("all")}
           className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-semibold transition ${
@@ -622,7 +622,7 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
       </div>
 
       {selectedYearGroup !== "all" && roomsInGroup.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
           <button
             onClick={() => setSelectedRoom(null)}
             className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition ${
@@ -652,7 +652,7 @@ export default function AdminStudents({ students, setStudents, roles, setRoles, 
         </div>
       )}
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
         <button
           onClick={() => setSelectedRole("all")}
           className={`shrink-0 flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold transition ${

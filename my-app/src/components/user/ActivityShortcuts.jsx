@@ -55,7 +55,7 @@ export default function ActivityShortcuts({ students, roles }) {
 
   return (
     <div>
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
         {activities.map((a) => (
           <button
             key={a.role}
