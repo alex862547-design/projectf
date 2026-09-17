@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { FileSpreadsheet, FileText, Printer, ClipboardList, Users, Trophy, Calendar, CheckCircle2, History } from "lucide-react";
+import { FileSpreadsheet, FileText, Printer, ClipboardList, Users, Trophy, Calendar, CheckCircle2, History, ChevronLeft, ChevronRight } from "lucide-react";
 import Card from "../common/Card";
 import { getTeams, teamById, formatThaiDate, sortStudentsByYear } from "../../utils/helpers";
 
@@ -248,10 +248,19 @@ export default function AdminReports({ students, matches, checkins, eventDays })
         )}
         {activeSection && (
           <Card className="p-0 overflow-hidden">
-            <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2" style={{ fontFamily: "Kanit, sans-serif" }}>
-              <activeSection.icon size={15} className="text-indigo-400" /> {activeSection.title}
+            <div className="px-5 py-3 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+              <div className="font-bold text-sm text-slate-900 dark:text-slate-100 flex items-center gap-2" style={{ fontFamily: "Kanit, sans-serif" }}>
+                <activeSection.icon size={15} className="text-indigo-400" /> {activeSection.title}
+              </div>
+              {/* ตารางกว้างกว่าจอมือถือเสมอ (คอลัมน์เยอะ) เลื่อนซ้าย-ขวาดูได้ด้วยการปัดนิ้ว แต่ไม่มีตัวเลื่อนให้เห็น
+                  ตอนหยุดนิ่งบนมือถือ (ไม่เหมือนจอคอมที่เห็นแถบเลื่อนอยู่แล้ว) จึงใส่คำใบ้ไว้เฉพาะจอเล็ก */}
+              {activeSection.rows.length > 0 && (
+                <div className="sm:hidden text-[11px] text-slate-400 flex items-center gap-1">
+                  <ChevronLeft size={11} /> เลื่อนดูข้อมูลเพิ่มเติม <ChevronRight size={11} />
+                </div>
+              )}
             </div>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-scroll">
               {activeSection.rows.length === 0 ? (
                 <div className="p-6 text-center text-sm text-slate-400">ไม่มีข้อมูล</div>
               ) : (
