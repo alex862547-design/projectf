@@ -410,7 +410,7 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
       {/* ปุ่มลัดของแต่ละตำแหน่ง/กิจกรรม — ตอนกำลังค้นหาจะซ่อนแถบนี้ไปเลย เพราะค้นหาจะมองข้ามตำแหน่งที่เลือกไว้
           แล้วค้นทั่วทุกตำแหน่งให้แทน (เหมือนหน้าเช็คชื่อของนักศึกษา) */}
       {!searchQ && (
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+        <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
           {groups.map((g) => {
             const Icon = g.icon;
             const checkedCount = g.rows.filter((r) => r.checkin).length;
