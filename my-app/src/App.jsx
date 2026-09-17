@@ -88,9 +88,11 @@ export default function App() {
     api.recordVisit().then((v) => setVisitsToday(v.count)).catch(() => {});
   }, []);
 
-  // ดึงข้อมูลใหม่เป็นระยะ (ทุก 4 วินาที) เพื่อให้ทุกคนเห็นข้อมูลล่าสุดโดยไม่ต้องกดรีเฟรชเอง เช่น เช็คชื่อจากอีก
+  // ดึงข้อมูลใหม่เป็นระยะ (ทุก 10 วินาที) เพื่อให้ทุกคนเห็นข้อมูลล่าสุดโดยไม่ต้องกดรีเฟรชเอง เช่น เช็คชื่อจากอีก
   // อุปกรณ์/แท็บแล้วต้องเห็นในหน้านี้ด้วย (ตั้งใจไม่รวม "matches" ในนี้ เพราะแอดมินอาจกำลังพิมพ์คะแนนอยู่
-  // ไม่อยากให้ค่าที่พิมพ์ค้างถูกเขียนทับ)
+  // ไม่อยากให้ค่าที่พิมพ์ค้างถูกเขียนทับ) — เดิม poll ทุก 4 วิ แต่สั้นกว่า cache ฝั่ง server (3 วิ) นิดเดียว
+  // ทำให้แทบทุกรอบพลาดแคชและไปดึงจากฐานข้อมูลจริงซ้ำๆ เปล่าประโยชน์ (กิน egress ฟรีๆ) ยืดเป็น 10 วิให้นานกว่า
+  // cache TTL ใหม่ (12 วิ) แทน ยังรู้สึก "เรียลไทม์" พอสำหรับใช้งานจริง แค่ลดภาระเซิร์ฟเวอร์/ฐานข้อมูลลงมาก
   // เบราว์เซอร์จะหยุด/ถ่วง setInterval ของแท็บที่ถูกซ่อนไว้ (ไม่ได้โฟกัส) เพื่อประหยัดแบต ทำให้แท็บที่ถูกสลับไปทำ
   // อย่างอื่นแล้วกลับมาเปิดดูอาจเห็นข้อมูลเก่าค้างอยู่นานกว่าที่ควร จึงดึงข้อมูลทันทีอีกครั้งเมื่อกลับมาโฟกัสแท็บ
   // นี้ ไม่ต้องรอรอบถัดไปของ interval
@@ -110,7 +112,7 @@ export default function App() {
         })
         .catch(() => {}); // พลาดชั่วคราวไม่เป็นไร รอบถัดไปจะลองใหม่เอง
 
-    const interval = setInterval(refresh, 4000);
+    const interval = setInterval(refresh, 10000);
     const onVisible = () => {
       if (document.visibilityState === "visible") refresh();
     };
@@ -151,7 +153,7 @@ export default function App() {
     }
     const fetchUnread = () => api.getUnreadMessageCount().then((r) => setUnreadMessageCount(r.count)).catch(() => {});
     fetchUnread();
-    const interval = setInterval(fetchUnread, 4000);
+    const interval = setInterval(fetchUnread, 10000);
     return () => clearInterval(interval);
   }, [session]);
 
@@ -166,7 +168,7 @@ export default function App() {
     }
     const fetchUnread = () => api.getCheckerUnreadCount().then((r) => setCheckerUnreadCount(r.count)).catch(() => {});
     fetchUnread();
-    const interval = setInterval(fetchUnread, 4000);
+    const interval = setInterval(fetchUnread, 10000);
     return () => clearInterval(interval);
   }, [isRealCheckinStudent]);
 

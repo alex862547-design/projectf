@@ -18,7 +18,7 @@ export default function ActivityShortcuts({ students, roles }) {
     setSelectedRole(null);
   };
 
-  // ดึงรายการแข่งขันเองแยกต่างหาก ทุก 4 วินาที เพื่อให้ปุ่มลัดชุดนี้อัปเดตแบบเรียลไทม์
+  // ดึงรายการแข่งขันเองแยกต่างหาก ทุก 10 วินาที เพื่อให้ปุ่มลัดชุดนี้อัปเดตแบบเรียลไทม์
   // (ไม่ใช้ matches ที่ App.jsx โหลดตอนแรก เพราะตัวนั้นตั้งใจไม่รีเฟรชอัตโนมัติ
   //  กันไม่ให้ไปทับคะแนนที่แอดมินอาจกำลังพิมพ์ค้างอยู่ในหน้าจัดการแข่งขัน)
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function ActivityShortcuts({ students, roles }) {
         })
         .catch(() => {});
     load();
-    const interval = setInterval(load, 4000);
+    const interval = setInterval(load, 10000);
     return () => {
       cancelled = true;
       clearInterval(interval);
