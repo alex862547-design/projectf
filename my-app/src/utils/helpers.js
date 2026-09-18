@@ -76,11 +76,17 @@ export function extractSportFromRole(role) {
 }
 
 // ตำแหน่งที่ขึ้นต้นด้วย "Staff" (เช่น "Staffกองเชียร์") คือเจ้าหน้าที่ดูแลตำแหน่งนั้น มีสิทธิ์เช็คชื่อ
-// "ตำแหน่งที่ตามหลัง Staff" แทนตำแหน่งของตัวเอง (คนละกลุ่มกัน) — ใช้จุดนี้แทนการเทียบ role ตรงๆ ทุกที่ที่
-// เกี่ยวกับสิทธิ์เช็คชื่อ (ต้องตรงกับ checkinTargetRole ฝั่ง server ใน assertCanActOnStudent เป๊ะๆ)
+// "ตำแหน่งที่ตามหลัง Staff" ได้ด้วย นอกเหนือจากตำแหน่งตัวเอง — ต้องตรงกับฝั่ง server เป๊ะๆ
 export function checkinTargetRole(role) {
   if (!role) return role;
   return role.startsWith("Staff") ? role.slice(5) : role;
+}
+
+// รายชื่อตำแหน่งทั้งหมดที่ role นี้เช็คชื่อได้ — ปกติมีแค่ตำแหน่งตัวเอง แต่ตำแหน่งที่ขึ้นต้นด้วย "Staff" จะเช็คได้
+// ทั้งตำแหน่งตัวเอง (เช่นเช็คชื่อกันเองใน Staffกองเชียร์) และตำแหน่งที่ตามหลัง Staff (เช่น กองเชียร์) ด้วย
+export function checkinScopeRoles(role) {
+  const target = checkinTargetRole(role);
+  return target === role ? [role] : [role, target];
 }
 
 // เทียบชื่อกีฬาแบบหลวมๆ ตัดวงเล็บ/ช่องว่าง/ตัวพิมพ์เล็กใหญ่ออก เช่น "esports (ROV)" กับ "esports" ให้ถือว่าตรงกัน

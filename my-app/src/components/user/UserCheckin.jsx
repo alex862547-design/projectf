@@ -10,7 +10,7 @@ import Toast from "../common/Toast";
 import { api } from "../../api";
 import {
   formatThaiDate, formatThaiFullDate, formatShortTime, sortStudentsByYear, parseCheckinQRValue,
-  extractSportFromRole as extractSport, matchForRole, checkinTargetRole,
+  extractSportFromRole as extractSport, matchForRole, checkinScopeRoles,
 } from "../../utils/helpers";
 
 // แท็บ "เช็คชื่อกิจกรรม" — ใช้ได้เฉพาะนักศึกษาที่ได้รับสิทธิ์ can_checkin (เจ้าหน้าที่ทีม) ให้เช็คชื่อ
@@ -37,8 +37,10 @@ export default function UserCheckin({
   // หัวหน้าสีเท่านั้นที่เช็คชื่อได้ทุกตำแหน่งในสีตัวเอง — server (assertCanActOnStudent) บังคับเงื่อนไขเดียวกันนี้
   // อยู่แล้ว ทำที่ frontend ด้วยเพื่อไม่ให้เห็น UI ของสิทธิ์ที่ทำจริงไม่ได้ (กดแล้วจะโดน 403 จาก server)
   const isTeamLead = student.role === "หัวหน้าสี";
-  // ตำแหน่งขึ้นต้นด้วย "Staff" (เช่น "Staffกองเชียร์") เช็คชื่อแทนตำแหน่งที่ตามหลัง ("กองเชียร์") ไม่ใช่ตำแหน่งตัวเอง
-  const targetRole = checkinTargetRole(student.role);
+  // ตำแหน่งขึ้นต้นด้วย "Staff" (เช่น "Staffกองเชียร์") เช็คชื่อได้ทั้งตำแหน่งตัวเองและตำแหน่งที่ตามหลัง Staff
+  // (เช่น "กองเชียร์") — scopeRoles มีแค่ 1 ตำแหน่งถ้าเป็นตำแหน่งปกติ, มี 2 ตำแหน่งถ้าเป็นตำแหน่งแบบ Staff
+  const scopeRoles = checkinScopeRoles(student.role);
+  const isDelegate = scopeRoles.length > 1;
   const [error, setError] = useState("");
   const [pendingCheckin, setPendingCheckin] = useState(null); // { studentId, matchId, name, sport }
   const [pendingAbsent, setPendingAbsent] = useState(null); // { studentId, name, matchId }
@@ -84,9 +86,12 @@ export default function UserCheckin({
     );
   }
 
-  // หัวหน้าสีเห็น/เช็คได้ทุกตำแหน่งในสีตัวเอง คนอื่นเห็น/เช็คได้แค่คนตำแหน่งเดียวกับตัวเองเท่านั้น
-  const teammates = students.filter((s) => s.team === student.team && (isTeamLead || s.role === targetRole));
+  // หัวหน้าสีเห็น/เช็คได้ทุกตำแหน่งในสีตัวเอง ตำแหน่งแบบ Staff เห็น/เช็คได้ 2 กลุ่ม (ตัวเอง + ตำแหน่งที่ดูแล)
+  // คนอื่นเห็น/เช็คได้แค่คนตำแหน่งเดียวกับตัวเองเท่านั้น
+  const teammates = students.filter((s) => s.team === student.team && (isTeamLead || scopeRoles.includes(s.role)));
   const roleList = roles && roles.length > 0 ? roles : [];
+  // ตำแหน่งที่มีปุ่มลัดให้สลับดู — หัวหน้าสีสลับได้ทุกตำแหน่ง ตำแหน่งแบบ Staff สลับได้แค่ 2 กลุ่มของตัวเอง
+  const switchableRoles = isTeamLead ? roleList : isDelegate ? scopeRoles : [];
 
   const todayStr = (() => {
     const d = new Date();
@@ -193,7 +198,12 @@ export default function UserCheckin({
 
   // ตำแหน่งที่กำลังดูอยู่ — หัวหน้าสีเลือกได้จากปุ่มลัด (กดปุ่มเดิมซ้ำเพื่อซ่อนข้อมูล) ส่วนตำแหน่งอื่นๆ
   // ตายตัวเป็นตำแหน่งของตัวเองเสมอ ไม่มีปุ่มลัดให้เลือก เพราะเช็คได้แค่กลุ่มเดียวอยู่แล้ว
-  const activeRole = isTeamLead ? (selectedRole && roleList.includes(selectedRole) ? selectedRole : null) : targetRole;
+  const activeRole =
+    isTeamLead || isDelegate
+      ? selectedRole && switchableRoles.includes(selectedRole)
+        ? selectedRole
+        : null
+      : student.role;
   const activeRoleSport = activeRole ? extractSport(activeRole) : null;
   const activeMatch = activeRole ? matchForRole(activeRole, matches) : null;
 
@@ -384,8 +394,10 @@ export default function UserCheckin({
           <Users size={13} />
           {isTeamLead ? (
             <>คุณเป็นหัวหน้าสี มีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน แบ่งตามตำแหน่ง/ประเภทกีฬา (ตำแหน่งใหม่ที่แอดมินเพิ่มจะขึ้นที่นี่ให้อัตโนมัติ)</>
+          ) : isDelegate ? (
+            <>คุณมีสิทธิ์เช็คชื่อนักศึกษาตำแหน่ง "{scopeRoles.join('" และ "')}" ในสีเดียวกัน ทั้งหมด {teammates.length} คน</>
           ) : (
-            <>คุณมีสิทธิ์เช็คชื่อเฉพาะนักศึกษาตำแหน่ง "{targetRole || "ไม่ระบุตำแหน่ง"}" ในสีเดียวกัน ทั้งหมด {teammates.length} คน</>
+            <>คุณมีสิทธิ์เช็คชื่อเฉพาะนักศึกษาตำแหน่ง "{student.role || "ไม่ระบุตำแหน่ง"}" ในสีเดียวกัน ทั้งหมด {teammates.length} คน</>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -422,15 +434,16 @@ export default function UserCheckin({
         />
       </div>
 
-      {/* ปุ่มลัดสลับตำแหน่งมีไว้ให้หัวหน้าสีเท่านั้น (คนอื่นเช็คได้แค่ตำแหน่งเดียวกับตัวเอง ไม่มีตำแหน่งให้สลับ) */}
-      {isTeamLead && (
+      {/* ปุ่มลัดสลับตำแหน่งมีไว้ให้หัวหน้าสี (สลับได้ทุกตำแหน่ง) กับตำแหน่งแบบ Staff (สลับได้แค่ 2 กลุ่มของตัวเอง)
+          เท่านั้น — คนอื่นเช็คได้แค่ตำแหน่งเดียวกับตัวเอง ไม่มีตำแหน่งให้สลับ */}
+      {(isTeamLead || isDelegate) && (
         <>
-          {roleList.length === 0 && (
+          {switchableRoles.length === 0 && (
             <div className="text-xs text-slate-400">ยังไม่มีตำแหน่งในระบบ</div>
           )}
 
           <div className="flex gap-2 overflow-x-scroll pb-2 -mx-1 px-1">
-            {roleList.map((role) => {
+            {switchableRoles.map((role) => {
               const count = teammates.filter((t) => (t.role || "") === role).length;
               const sport = extractSport(role);
               const isActive = activeRole === role;
