@@ -94,6 +94,12 @@ export const api = {
   getMessageThreads: () => request("/attendance-messages/threads"),
   getCheckerUnreadCount: () => request("/attendance-messages/checker-unread-count"),
 
+  getAdminMessages: (studentId) => request(`/admin-messages?studentId=${encodeURIComponent(studentId)}`),
+  sendAdminMessage: (data) => request("/admin-messages", { method: "POST", body: JSON.stringify(data) }),
+  getAdminMessageUnreadCount: () => request("/admin-messages/unread-count"),
+  getAdminMessageThreads: () => request("/admin-messages/threads"),
+  getAdminUnreadCount: () => request("/admin-messages/admin-unread-count"),
+
   getEventDays: () => request("/event-days"),
   createEventDay: (date, label) => request("/event-days", { method: "POST", body: JSON.stringify({ date, label }) }),
   createEventDays: (dates, label) => request("/event-days", { method: "POST", body: JSON.stringify({ dates, label }) }),

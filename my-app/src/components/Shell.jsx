@@ -1,7 +1,8 @@
 import React, { useState } from "react";
-import { LogOut, Menu, ChevronLeft, ChevronRight, Sun, Moon, Eye, QrCode } from "lucide-react";
+import { LogOut, Menu, ChevronLeft, ChevronRight, Sun, Moon, Eye, QrCode, MessageCircle } from "lucide-react";
 import ConfirmDialog from "./common/ConfirmDialog";
 import QRCodeModal from "./common/QRCodeModal";
+import AdminMessageModal from "./common/AdminMessageModal";
 import { buildCheckinQRValue } from "../utils/helpers";
 
 // "โครง" ของทุกหน้าหลังล็อกอินแล้ว (นักศึกษาและแอดมิน) — ตัวนี้ไม่มีเนื้อหาของตัวเอง แต่เป็นกรอบที่ครอบ
@@ -9,11 +10,12 @@ import { buildCheckinQRValue } from "../utils/helpers";
 // แถบบน + เมนู drawer เลื่อนออกจากซ้ายบนมือถือ, ปุ่มโปรไฟล์/ออกจากระบบ/สลับธีมมืด-สว่าง/QR code
 // รับ `tabs` (รายการเมนู) กับ `active`/`setActive` มาจาก App.jsx เพื่อบอกว่าตอนนี้อยู่แท็บไหนและสลับแท็บยังไง
 // รับ `studentId` เฉพาะกรณีเป็นนักศึกษา (role="user") เพื่อสร้าง QR เช็คชื่อประจำตัว — แอดมินไม่มีค่านี้เลยไม่เห็นปุ่มนี้
-export default function Shell({ role, name, studentId, tabs, active, setActive, onLogout, theme, onToggleTheme, onPreviewUser, topOffset = 0, children }) {
+export default function Shell({ role, name, studentId, adminMsgUnreadCount = 0, tabs, active, setActive, onLogout, theme, onToggleTheme, onPreviewUser, topOffset = 0, children }) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [siteQrOpen, setSiteQrOpen] = useState(false);
   const [myQrOpen, setMyQrOpen] = useState(false);
+  const [adminChatOpen, setAdminChatOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => localStorage.getItem("sidebarCollapsed") === "1");
 
   const toggleSidebar = () =>
@@ -121,6 +123,19 @@ export default function Shell({ role, name, studentId, tabs, active, setActive, 
           className="w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
         >
           <QrCode size={14} /> QR เช็คชื่อของฉัน
+        </button>
+      )}
+      {studentId && (
+        <button
+          onClick={() => setAdminChatOpen(true)}
+          className="relative w-full flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-slate-300 hover:bg-white/5 hover:text-white transition-colors"
+        >
+          <MessageCircle size={14} /> ข้อความถึงแอดมิน
+          {adminMsgUnreadCount > 0 && (
+            <span className="ml-auto flex items-center justify-center min-w-[1.25rem] h-5 px-1 rounded-full bg-red-500 text-white text-[11px] font-bold shrink-0">
+              {adminMsgUnreadCount > 99 ? "99+" : adminMsgUnreadCount}
+            </span>
+          )}
         </button>
       )}
       <button
@@ -266,6 +281,17 @@ export default function Shell({ role, name, studentId, tabs, active, setActive, 
           value={buildCheckinQRValue(studentId)}
           description="ยื่น QR นี้ให้เจ้าหน้าที่ทีมสแกนเพื่อเช็คชื่อเข้าร่วมกิจกรรม แทนการให้ค้นหาชื่อจากลิสต์"
           onClose={() => setMyQrOpen(false)}
+        />
+      )}
+
+      {studentId && (
+        <AdminMessageModal
+          open={adminChatOpen}
+          studentId={studentId}
+          viewerRole="student"
+          title="ข้อความถึงแอดมิน"
+          subtitle="ส่งข้อความหาผู้ดูแลระบบได้โดยตรง"
+          onClose={() => setAdminChatOpen(false)}
         />
       )}
     </div>

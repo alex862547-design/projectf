@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Users, Calendar, Trophy, Newspaper, CheckCircle2, Clock, Briefcase, CalendarDays, Eye, ClipboardList, FileBarChart } from "lucide-react";
+import { Users, Calendar, Trophy, Newspaper, CheckCircle2, Clock, Briefcase, CalendarDays, Eye, ClipboardList, FileBarChart, Inbox } from "lucide-react";
 
 import Login from "./components/Login";
 import GuestView from "./components/guest/GuestView";
@@ -21,6 +21,7 @@ import AdminNews from "./components/admin/AdminNews";
 import AdminEventDays from "./components/admin/AdminEventDays";
 import AdminCheckins from "./components/admin/AdminCheckins";
 import AdminReports from "./components/admin/AdminReports";
+import AdminMessages from "./components/admin/AdminMessages";
 
 import { api, getAuthToken, setAuthToken } from "./api";
 import { setTeams as setTeamsCache } from "./utils/helpers";
@@ -172,6 +173,33 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isRealCheckinStudent]);
 
+  // จำนวนข้อความใหม่จากแอดมินที่นักศึกษายังไม่ได้เปิดอ่าน (ห้องแชท "ข้อความถึงแอดมิน") ใช้โชว์เลขแดงที่ปุ่ม
+  // โปรไฟล์ใน Shell.jsx — เฉพาะนักศึกษาที่ล็อกอินจริงเท่านั้น (ไม่รวมโหมดดูตัวอย่างของแอดมิน)
+  const [adminMsgUnreadCount, setAdminMsgUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!session || session.role !== "student") {
+      setAdminMsgUnreadCount(0);
+      return;
+    }
+    const fetchUnread = () => api.getAdminMessageUnreadCount().then((r) => setAdminMsgUnreadCount(r.count)).catch(() => {});
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
+  }, [session]);
+
+  // จำนวนข้อความรวมจากนักศึกษาทุกคนที่แอดมินยังไม่ได้เปิดอ่าน ใช้โชว์เลขแดงที่แท็บ "ข้อความนักศึกษา" ฝั่งแอดมิน
+  const [adminUnreadCount, setAdminUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!session || session.role !== "admin") {
+      setAdminUnreadCount(0);
+      return;
+    }
+    const fetchUnread = () => api.getAdminUnreadCount().then((r) => setAdminUnreadCount(r.count)).catch(() => {});
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
+  }, [session]);
+
   const handleLogout = () => {
     setAuthToken(null);
     setSession(null);
@@ -281,7 +309,7 @@ export default function App() {
         )}
         {/* studentId ส่งให้ Shell เฉพาะตอนล็อกอินเป็นนักศึกษาจริง (ไม่ใช่โหมดดูตัวอย่างของแอดมิน) เพื่อให้ปุ่ม
             "QR เช็คชื่อของฉัน" ในโปรไฟล์โผล่มาเฉพาะเจ้าตัวจริงเท่านั้น กันแอดมินเห็น QR เช็คชื่อของคนอื่นตอนดูตัวอย่าง */}
-        <Shell role="user" name={student.name} studentId={previewOnClose ? undefined : student.id} tabs={tabs} active={activeTab} setActive={setActiveTab} onLogout={logoutFn} theme={theme} onToggleTheme={toggleTheme} topOffset={previewOnClose ? 36 : 0}>
+        <Shell role="user" name={student.name} studentId={previewOnClose ? undefined : student.id} adminMsgUnreadCount={adminMsgUnreadCount} tabs={tabs} active={activeTab} setActive={setActiveTab} onLogout={logoutFn} theme={theme} onToggleTheme={toggleTheme} topOffset={previewOnClose ? 36 : 0}>
           <PageHeader
             icon={tabs.find((t) => t.key === activeTab)?.icon || tabs[0].icon}
             title={tabs.find((t) => t.key === activeTab)?.label || tabs[0].label}
@@ -307,6 +335,7 @@ export default function App() {
       { key: "checkins", label: "จัดการเช็คชื่อ", icon: ClipboardList },
       { key: "news", label: "ข่าวสาร", icon: Newspaper },
       { key: "eventdays", label: "วันจัดกิจกรรม", icon: CalendarDays },
+      { key: "messages", label: "ข้อความนักศึกษา", icon: Inbox, badge: adminUnreadCount > 0 ? adminUnreadCount : undefined },
       { key: "reports", label: "สรุปผล/ส่งออกข้อมูล", icon: FileBarChart },
     ];
 
@@ -346,6 +375,7 @@ export default function App() {
           {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} eventDays={eventDays} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} />}
           {adminTab === "news" && <AdminNews news={news} setNews={setNews} />}
           {adminTab === "eventdays" && <AdminEventDays eventDays={eventDays} setEventDays={setEventDays} />}
+          {adminTab === "messages" && <AdminMessages />}
           {adminTab === "reports" && <AdminReports students={students} matches={matches} checkins={checkins} eventDays={eventDays} />}
         </Shell>
         <Toast toast={toast} onClose={() => setToast(null)} />
