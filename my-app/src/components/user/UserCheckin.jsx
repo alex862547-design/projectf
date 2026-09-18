@@ -10,7 +10,7 @@ import Toast from "../common/Toast";
 import { api } from "../../api";
 import {
   formatThaiDate, formatThaiFullDate, formatShortTime, sortStudentsByYear, parseCheckinQRValue,
-  extractSportFromRole as extractSport, matchForRole,
+  extractSportFromRole as extractSport, matchForRole, checkinTargetRole,
 } from "../../utils/helpers";
 
 // แท็บ "เช็คชื่อกิจกรรม" — ใช้ได้เฉพาะนักศึกษาที่ได้รับสิทธิ์ can_checkin (เจ้าหน้าที่ทีม) ให้เช็คชื่อ
@@ -37,6 +37,8 @@ export default function UserCheckin({
   // หัวหน้าสีเท่านั้นที่เช็คชื่อได้ทุกตำแหน่งในสีตัวเอง — server (assertCanActOnStudent) บังคับเงื่อนไขเดียวกันนี้
   // อยู่แล้ว ทำที่ frontend ด้วยเพื่อไม่ให้เห็น UI ของสิทธิ์ที่ทำจริงไม่ได้ (กดแล้วจะโดน 403 จาก server)
   const isTeamLead = student.role === "หัวหน้าสี";
+  // ตำแหน่งขึ้นต้นด้วย "Staff" (เช่น "Staffกองเชียร์") เช็คชื่อแทนตำแหน่งที่ตามหลัง ("กองเชียร์") ไม่ใช่ตำแหน่งตัวเอง
+  const targetRole = checkinTargetRole(student.role);
   const [error, setError] = useState("");
   const [pendingCheckin, setPendingCheckin] = useState(null); // { studentId, matchId, name, sport }
   const [pendingAbsent, setPendingAbsent] = useState(null); // { studentId, name, matchId }
@@ -83,7 +85,7 @@ export default function UserCheckin({
   }
 
   // หัวหน้าสีเห็น/เช็คได้ทุกตำแหน่งในสีตัวเอง คนอื่นเห็น/เช็คได้แค่คนตำแหน่งเดียวกับตัวเองเท่านั้น
-  const teammates = students.filter((s) => s.team === student.team && (isTeamLead || s.role === student.role));
+  const teammates = students.filter((s) => s.team === student.team && (isTeamLead || s.role === targetRole));
   const roleList = roles && roles.length > 0 ? roles : [];
 
   const todayStr = (() => {
@@ -191,7 +193,7 @@ export default function UserCheckin({
 
   // ตำแหน่งที่กำลังดูอยู่ — หัวหน้าสีเลือกได้จากปุ่มลัด (กดปุ่มเดิมซ้ำเพื่อซ่อนข้อมูล) ส่วนตำแหน่งอื่นๆ
   // ตายตัวเป็นตำแหน่งของตัวเองเสมอ ไม่มีปุ่มลัดให้เลือก เพราะเช็คได้แค่กลุ่มเดียวอยู่แล้ว
-  const activeRole = isTeamLead ? (selectedRole && roleList.includes(selectedRole) ? selectedRole : null) : student.role;
+  const activeRole = isTeamLead ? (selectedRole && roleList.includes(selectedRole) ? selectedRole : null) : targetRole;
   const activeRoleSport = activeRole ? extractSport(activeRole) : null;
   const activeMatch = activeRole ? matchForRole(activeRole, matches) : null;
 
@@ -383,7 +385,7 @@ export default function UserCheckin({
           {isTeamLead ? (
             <>คุณเป็นหัวหน้าสี มีสิทธิ์เช็คชื่อนักศึกษาในสีเดียวกันทั้งหมด {teammates.length} คน แบ่งตามตำแหน่ง/ประเภทกีฬา (ตำแหน่งใหม่ที่แอดมินเพิ่มจะขึ้นที่นี่ให้อัตโนมัติ)</>
           ) : (
-            <>คุณมีสิทธิ์เช็คชื่อเฉพาะนักศึกษาตำแหน่ง "{student.role || "ไม่ระบุตำแหน่ง"}" ในสีเดียวกัน ทั้งหมด {teammates.length} คน</>
+            <>คุณมีสิทธิ์เช็คชื่อเฉพาะนักศึกษาตำแหน่ง "{targetRole || "ไม่ระบุตำแหน่ง"}" ในสีเดียวกัน ทั้งหมด {teammates.length} คน</>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">

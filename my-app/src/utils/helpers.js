@@ -75,6 +75,14 @@ export function extractSportFromRole(role) {
   return stripped || null;
 }
 
+// ตำแหน่งที่ขึ้นต้นด้วย "Staff" (เช่น "Staffกองเชียร์") คือเจ้าหน้าที่ดูแลตำแหน่งนั้น มีสิทธิ์เช็คชื่อ
+// "ตำแหน่งที่ตามหลัง Staff" แทนตำแหน่งของตัวเอง (คนละกลุ่มกัน) — ใช้จุดนี้แทนการเทียบ role ตรงๆ ทุกที่ที่
+// เกี่ยวกับสิทธิ์เช็คชื่อ (ต้องตรงกับ checkinTargetRole ฝั่ง server ใน assertCanActOnStudent เป๊ะๆ)
+export function checkinTargetRole(role) {
+  if (!role) return role;
+  return role.startsWith("Staff") ? role.slice(5) : role;
+}
+
 // เทียบชื่อกีฬาแบบหลวมๆ ตัดวงเล็บ/ช่องว่าง/ตัวพิมพ์เล็กใหญ่ออก เช่น "esports (ROV)" กับ "esports" ให้ถือว่าตรงกัน
 export function normalizeSportName(str) {
   return (str || "").toLowerCase().replace(/\(.*?\)/g, "").replace(/\s+/g, "");
