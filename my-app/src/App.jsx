@@ -187,6 +187,20 @@ export default function App() {
     return () => clearInterval(interval);
   }, [session]);
 
+  // จำนวนข้อความที่นักศึกษาตอบกลับมาแล้วแอดมินยังไม่ได้เปิดอ่าน (ห้องแชทเช็คชื่อ) ใช้โชว์เลขแดงที่ปุ่ม
+  // "กล่องข้อความ" ในหน้าจัดการเช็คชื่อฝั่งแอดมิน (คนละตัวกับ adminUnreadCount ที่นับห้องแชท "ข้อความถึงแอดมิน")
+  const [adminCheckerUnreadCount, setAdminCheckerUnreadCount] = useState(0);
+  useEffect(() => {
+    if (!session || session.role !== "admin") {
+      setAdminCheckerUnreadCount(0);
+      return;
+    }
+    const fetchUnread = () => api.getCheckerUnreadCount().then((r) => setAdminCheckerUnreadCount(r.count)).catch(() => {});
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 10000);
+    return () => clearInterval(interval);
+  }, [session]);
+
   // จำนวนข้อความรวมจากนักศึกษาทุกคนที่แอดมินยังไม่ได้เปิดอ่าน ใช้โชว์เลขแดงที่แท็บ "ข้อความนักศึกษา" ฝั่งแอดมิน
   const [adminUnreadCount, setAdminUnreadCount] = useState(0);
   useEffect(() => {
@@ -332,7 +346,7 @@ export default function App() {
     const tabs = [
       { key: "students", label: "จัดการนักศึกษา", icon: Users },
       { key: "matches", label: "ตารางแข่งขัน/คะแนน", icon: Calendar },
-      { key: "checkins", label: "จัดการเช็คชื่อ", icon: ClipboardList },
+      { key: "checkins", label: "จัดการเช็คชื่อ", icon: ClipboardList, badge: adminCheckerUnreadCount > 0 ? adminCheckerUnreadCount : undefined },
       { key: "news", label: "ข่าวสาร", icon: Newspaper },
       { key: "eventdays", label: "วันจัดกิจกรรม", icon: CalendarDays },
       { key: "messages", label: "ข้อความนักศึกษา", icon: Inbox, badge: adminUnreadCount > 0 ? adminUnreadCount : undefined },
@@ -372,7 +386,7 @@ export default function App() {
           />
           {adminTab === "students" && <AdminStudents students={students} setStudents={setStudents} roles={roles} setRoles={setRoles} studentYears={studentYears} setStudentYears={setStudentYears} teams={teams} setTeams={setTeams} />}
           {adminTab === "matches" && <AdminMatches matches={matches} setMatches={setMatches} teams={teams} />}
-          {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} eventDays={eventDays} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} />}
+          {adminTab === "checkins" && <AdminCheckins checkins={checkins} setCheckins={setCheckins} students={students} matches={matches} roles={roles} eventDays={eventDays} checkinConfirmations={checkinConfirmations} setCheckinConfirmations={setCheckinConfirmations} adminName={session.name} checkerUnreadCount={adminCheckerUnreadCount} />}
           {adminTab === "news" && <AdminNews news={news} setNews={setNews} />}
           {adminTab === "eventdays" && <AdminEventDays eventDays={eventDays} setEventDays={setEventDays} />}
           {adminTab === "messages" && <AdminMessages />}

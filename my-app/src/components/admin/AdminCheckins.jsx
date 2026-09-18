@@ -2,11 +2,14 @@ import React, { useMemo, useRef, useState } from "react";
 import {
   CalendarDays, ChevronLeft, ChevronRight, Search, Trophy, Users,
   Pencil, Check, X, Trash2, Plus, RotateCcw, UserPlus, CheckCircle2, XCircle, ShieldCheck,
+  MessageCircle, Inbox,
 } from "lucide-react";
 import Card from "../common/Card";
 import Badge from "../common/Badge";
 import ConfirmDialog from "../common/ConfirmDialog";
 import StudentDetailModal from "../common/StudentDetailModal";
+import AttendanceThreadModal from "../common/AttendanceThreadModal";
+import MessageInboxModal from "../common/MessageInboxModal";
 import { api } from "../../api";
 import { formatThaiFullDate, formatShortTime, sortStudentsByYear, extractSportFromRole as extractSport, matchForRole } from "../../utils/helpers";
 
@@ -21,9 +24,11 @@ function toIso(d) {
 // จัดกลุ่มตาม "ตำแหน่ง/ประเภทกิจกรรม" ทุกตำแหน่งที่มีในระบบ (เหมือนหน้าเช็คชื่อของนักศึกษา แต่แอดมินเห็นทุกสี
 // ทุกตำแหน่งพร้อมกัน ไม่ถูกจำกัดแค่สี/ตำแหน่งตัวเอง) แต่ละแถวถ้ายังไม่เช็คชื่อจะมีปุ่ม "เช็คชื่อ/เช็คขาด" กดเช็ค
 // ได้ทันทีเหมือนฝั่งนักศึกษา ถ้าเช็คไปแล้วจะแก้ไขสถานะ/เวลา หรือลบรายการที่บันทึกผิดได้เลย
-export default function AdminCheckins({ checkins, setCheckins, students, matches, roles, eventDays = [], checkinConfirmations = [], setCheckinConfirmations }) {
+export default function AdminCheckins({ checkins, setCheckins, students, matches, roles, eventDays = [], checkinConfirmations = [], setCheckinConfirmations, adminName, checkerUnreadCount = 0 }) {
   const todayStr = toIso(new Date());
   const [selectedDate, setSelectedDate] = useState(todayStr);
+  const [threadFor, setThreadFor] = useState(null); // { studentId, date }
+  const [inboxOpen, setInboxOpen] = useState(false);
   // เช็คชื่อได้แค่วันที่แอดมินตั้งไว้เป็น "วันจัดกิจกรรม" เท่านั้น — server บังคับเงื่อนไขเดียวกันนี้อยู่แล้วตอน
   // POST /api/checkins กันเผลอเช็คชื่อวันที่ไม่มีกิจกรรมเลย ทำที่หน้านี้ด้วยเพื่อไม่ให้เห็นปุ่มที่กดแล้วโดนปฏิเสธเปล่าๆ
   const isEventDay = eventDays.some((d) => d.date === selectedDate);
@@ -100,6 +105,13 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
   };
 
   const dayCheckins = useMemo(() => checkins.filter((c) => c.date === selectedDate), [checkins, selectedDate]);
+
+  // หาว่าใครเป็นคนเช็คชื่อ/เช็คขาดให้อยู่ ให้ AttendanceThreadModal โชว์ไว้ใต้หัวข้อวันที่ (เหมือน UserCheckin.jsx)
+  const threadCheckedBy = useMemo(() => {
+    if (!threadFor) return null;
+    const rec = checkins.find((c) => c.studentId === threadFor.studentId && c.date === threadFor.date && c.checkedBy);
+    return rec ? rec.checkedBy : null;
+  }, [checkins, threadFor]);
 
   // ตำแหน่ง/ประเภทกิจกรรมทั้งหมดในระบบ — เอามาจากรายการตำแหน่งที่แอดมินตั้งไว้ (roles) รวมกับตำแหน่งที่นักศึกษา
   // บางคนอาจยังติดอยู่แต่ถูกลบออกจากรายการไปแล้ว (กันตกหล่น ไม่ให้ใครหายไปจากทุกกลุ่มเลย)
@@ -367,6 +379,17 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
             className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-slate-900 dark:text-slate-100 placeholder-slate-500 pl-9 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
+        <button
+          onClick={() => setInboxOpen(true)}
+          className="relative shrink-0 flex items-center gap-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold px-3.5 py-2.5 hover:bg-slate-100 dark:hover:bg-slate-800"
+        >
+          <Inbox size={14} /> กล่องข้อความ
+          {checkerUnreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center min-w-[1.1rem] h-[1.1rem] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold">
+              {checkerUnreadCount > 99 ? "99+" : checkerUnreadCount}
+            </span>
+          )}
+        </button>
         <button
           onClick={() => setAddOpen((v) => !v)}
           className="shrink-0 flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white text-xs font-semibold px-3.5 py-2.5 hover:bg-indigo-700"
@@ -653,6 +676,13 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
                           โดย {checkin.checkedBy.isAdmin ? "แอดมิน" : checkin.checkedBy.name}
                         </span>
                       )}
+                      <button
+                        onClick={() => setThreadFor({ studentId: student.id, date: selectedDate })}
+                        className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10"
+                        title={`ดูข้อความของ${formatThaiFullDate(new Date(selectedDate + "T00:00:00"))}`}
+                      >
+                        <MessageCircle size={14} />
+                      </button>
                       <button onClick={() => startEdit(checkin)} className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-400 hover:bg-indigo-500/10" title="แก้ไขเวลา">
                         <Pencil size={14} />
                       </button>
@@ -689,6 +719,24 @@ export default function AdminCheckins({ checkins, setCheckins, students, matches
         checkins={checkins}
         matches={matches}
         onClose={() => setViewingStudent(null)}
+      />
+
+      <AttendanceThreadModal
+        open={!!threadFor}
+        studentId={threadFor?.studentId}
+        date={threadFor?.date}
+        viewerName={adminName}
+        checkedBy={threadCheckedBy}
+        onClose={() => setThreadFor(null)}
+      />
+
+      <MessageInboxModal
+        open={inboxOpen}
+        onOpenThread={(studentId, date) => {
+          setInboxOpen(false);
+          setThreadFor({ studentId, date });
+        }}
+        onClose={() => setInboxOpen(false)}
       />
     </div>
   );
